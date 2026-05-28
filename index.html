@@ -118,19 +118,13 @@
           role="tabpanel"
           aria-labelledby="tab-calendar"
         >
-          <section class="toolbar card" aria-label="월 이동">
+          <section class="toolbar toolbar--calendar card" aria-label="월 이동">
             <button type="button" id="btn-prev" class="btn btn-circle" aria-label="이전 달">
               <svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </button>
             <div class="toolbar__month">
-              <span class="toolbar__month-icon" aria-hidden="true">
-                <svg class="ico ico--muted" width="20" height="20" viewBox="0 0 24 24" fill="none">
-                  <rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.75" />
-                  <path d="M8 3v4M16 3v4M3 11h18" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
-                </svg>
-              </span>
               <h2 id="month-label" class="month-label"></h2>
             </div>
             <button type="button" id="btn-next" class="btn btn-circle" aria-label="다음 달">
@@ -138,28 +132,17 @@
                 <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </button>
-            <button type="button" id="btn-today" class="btn btn-primary btn-today">
-              <svg class="ico" width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.75" />
-                <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
-              </svg>
-              <span>이번 달 오늘</span>
+            <button type="button" id="btn-today" class="btn btn-primary btn-today" aria-label="이번 달 오늘로 이동">
+              <span class="btn-today__long">이번 달 오늘</span>
+              <span class="btn-today__short" aria-hidden="true">오늘</span>
             </button>
           </section>
 
-          <section class="legend card" aria-label="구성원 범례">
-            <div class="legend__head">
-              <svg class="ico ico--accent" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
-                <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="1.75" />
-                <path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
-              </svg>
-              <span class="legend-title">구성원</span>
-            </div>
+          <section class="legend legend--compact card" aria-label="구성원 범례">
             <ul id="legend-list" class="legend-list"></ul>
           </section>
 
-          <p class="calendar-note">오늘 이후 날짜는 아직 기록이 없습니다.</p>
+          <p class="calendar-note calendar-note--desktop">오늘 이후 날짜는 아직 기록이 없습니다.</p>
 
           <div class="calendar-wrap card card--flush">
             <div class="calendar-scroll">
@@ -170,30 +153,30 @@
             </div>
           </div>
 
-          <footer class="hint">
-            <div class="hint__item hint__item--ok">
+          <footer class="hint hint--compact" aria-label="상태 범례">
+            <div class="hint__item hint__item--ok" title="복용 완료">
               <span class="hint__ico" aria-hidden="true">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
               </span>
-              <span>복용 완료</span>
+              <span class="hint__label">완료</span>
             </div>
-            <div class="hint__item hint__item--miss">
+            <div class="hint__item hint__item--miss" title="미복용">
               <span class="hint__ico" aria-hidden="true">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
                 </svg>
               </span>
-              <span>미복용</span>
+              <span class="hint__label">미복용</span>
             </div>
-            <div class="hint__item hint__item--none">
+            <div class="hint__item hint__item--none" title="기록 없음">
               <span class="hint__ico" aria-hidden="true">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                   <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.75" stroke-dasharray="4 3" />
                 </svg>
               </span>
-              <span>기록 없음</span>
+              <span class="hint__label">없음</span>
             </div>
           </footer>
         </section>

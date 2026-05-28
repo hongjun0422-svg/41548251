@@ -1055,6 +1055,10 @@ html[data-theme="dark"] .theme-ico--moon {
   width: 100%;
 }
 
+.btn-today__short {
+  display: none;
+}
+
 @media (min-width: 560px) {
   .toolbar {
     grid-template-columns: auto 1fr auto auto;
@@ -1426,6 +1430,47 @@ html[data-theme="dark"] .theme-ico--moon {
   margin-top: auto;
 }
 
+/* 모바일: 구성원 상태 점 (이니셜) */
+.cell-dots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+}
+
+.status-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 50%;
+  font-size: 0.52rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #fff;
+  background: var(--member, var(--accent));
+  border: 2px solid transparent;
+  flex-shrink: 0;
+}
+
+.status-dot--ok {
+  border-color: var(--ok);
+  box-shadow: 0 0 0 1px rgba(5, 150, 105, 0.35);
+}
+
+.status-dot--miss {
+  border-color: var(--miss);
+  box-shadow: 0 0 0 1px rgba(225, 29, 72, 0.35);
+}
+
+.status-dot--none {
+  border-color: #cbd5e1;
+  opacity: 0.88;
+}
+
 /* 구성원 한 줄: 아바타 + 이름 + 상태 아이콘 */
 .member-pill {
   display: grid;
@@ -1605,42 +1650,63 @@ html[data-theme="dark"] .theme-ico--moon {
   color: var(--none);
 }
 
-/* —— 모바일: 캘린더 탭 여유·가독성 —— */
+/* —— 모바일: 캘린더 간소화 —— */
 @media (max-width: 767px) {
   .view-panel--calendar {
-    padding-bottom: 4px;
+    padding-bottom: 2px;
   }
 
-  .view-panel--calendar .toolbar.card {
-    margin-bottom: 12px;
-    padding: 12px 12px 14px;
-    gap: 10px;
-    border-radius: 18px;
-    box-shadow: 0 2px 18px rgba(15, 23, 42, 0.06);
-    border-color: #e2e8f0;
+  .calendar-note--desktop {
+    display: none;
   }
 
-  .view-panel--calendar .legend.card {
-    padding: 10px 12px 12px;
-    margin-bottom: 10px;
-    border-radius: 16px;
-    box-shadow: 0 2px 14px rgba(15, 23, 42, 0.05);
+  .view-panel--calendar .toolbar--calendar {
+    margin: 0 0 8px;
+    padding: 8px 10px;
+    gap: 8px;
+    grid-template-columns: auto 1fr auto auto;
+    grid-template-rows: auto;
+    border-radius: 14px;
   }
 
-  .view-panel--calendar .legend__head {
+  .view-panel--calendar .btn-today {
+    grid-column: auto;
+    width: auto;
+    min-width: 0;
+    min-height: 40px;
+    padding: 0 14px;
+    font-size: 0.82rem;
+  }
+
+  .btn-today__long {
+    display: none;
+  }
+
+  .btn-today__short {
+    display: inline;
+  }
+
+  .view-panel--calendar .month-label {
+    font-size: 1rem;
+  }
+
+  .view-panel--calendar .btn-circle {
+    width: 40px;
+    height: 40px;
+  }
+
+  .view-panel--calendar .legend--compact {
     margin-bottom: 8px;
+    padding: 6px 8px;
+    border-radius: 12px;
   }
 
   .view-panel--calendar .legend-list {
     flex-wrap: nowrap;
     overflow-x: auto;
-    gap: 8px;
-    padding: 2px 2px 8px;
-    margin: 0 -4px;
-    padding-left: 4px;
-    padding-right: 4px;
+    gap: 6px;
+    padding-bottom: 2px;
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior-x: contain;
     scrollbar-width: none;
   }
 
@@ -1650,139 +1716,120 @@ html[data-theme="dark"] .theme-ico--moon {
 
   .view-panel--calendar .legend-chip {
     flex-shrink: 0;
-    padding: 8px 14px 8px 8px;
-    font-size: 0.82rem;
+    padding: 4px 10px 4px 4px;
+    font-size: 0.75rem;
   }
 
-  .view-panel--calendar .calendar-note {
-    margin: 0 0 12px;
-    font-size: 0.76rem;
-    line-height: 1.5;
-    padding: 8px 10px;
-    border-radius: 12px;
-    background: rgba(255, 255, 255, 0.65);
-    border: 1px dashed #cbd5e1;
+  .view-panel--calendar .legend-chip__avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 0.68rem;
   }
 
   .view-panel--calendar .calendar-wrap {
-    margin-left: -6px;
-    margin-right: -6px;
-    width: calc(100% + 12px);
-    border-radius: 18px;
-    border: none;
-    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.07);
+    margin: 0;
+    width: 100%;
+    border-radius: 14px;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
   }
 
   .view-panel--calendar .calendar-scroll {
-    border-radius: 18px;
+    overflow-x: hidden;
   }
 
   .view-panel--calendar .calendar-sheet {
-    /* 칸 너비 확보 → 가로 스크롤로 답답함 완화 */
-    min-width: 392px;
-    padding: 16px 18px 22px;
-    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    min-width: 0;
+    width: 100%;
+    padding: 10px 8px 12px;
   }
 
   .view-panel--calendar .weekdays {
-    gap: 6px;
-    margin-bottom: 12px;
+    gap: 2px;
+    margin-bottom: 6px;
   }
 
   .view-panel--calendar .weekday {
-    padding: 8px 2px 6px;
-    font-size: 0.7rem;
-    letter-spacing: 0.04em;
+    padding: 4px 0;
+    font-size: 0.62rem;
+    letter-spacing: 0;
   }
 
   .view-panel--calendar .weekday__dot {
     display: none;
   }
 
-  .view-panel--calendar .grid {
-    gap: 11px;
+  .view-panel--calendar .weekday__label {
+    font-size: 0.62rem;
+  }
+
+  .view-panel--calendar .grid,
+  .view-panel--calendar .grid--compact {
+    gap: 4px;
   }
 
   .view-panel--calendar .cell {
-    min-height: 5rem;
-    padding: 10px 8px 12px;
-    border-radius: 14px;
-    border-color: #e8edf3;
-    background: #fff;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.9) inset;
-    gap: 8px;
+    min-height: 0;
+    aspect-ratio: 1;
+    padding: 4px 3px 5px;
+    gap: 3px;
+    border-radius: 10px;
+    justify-content: flex-start;
   }
 
   .view-panel--calendar .cell--today {
-    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.28), 0 10px 26px rgba(13, 148, 136, 0.12);
+    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.35);
   }
 
   .view-panel--calendar .cell--future {
-    min-height: 4.5rem;
+    min-height: 0;
+    aspect-ratio: 1;
+    opacity: 0.55;
   }
 
   .view-panel--calendar .cell-top {
-    min-height: 1.1rem;
+    min-height: 0;
+    justify-content: center;
   }
 
   .view-panel--calendar .cell-date {
-    font-size: 0.95rem;
+    font-size: 0.78rem;
+    width: 100%;
+    text-align: center;
   }
 
   .view-panel--calendar .cell-users {
-    gap: 5px;
-  }
-
-  /* 이름 숨김: 이니셜·상태만 → 가로 공간 확보 (이름은 title 툴팁) */
-  .view-panel--calendar .member-pill {
-    display: flex;
+    margin-top: 0;
+    flex: 1;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    min-height: 32px;
-    padding: 5px 7px;
-    font-size: 0.65rem;
+    justify-content: center;
   }
 
-  .view-panel--calendar .member-pill__name {
-    display: none;
+  .view-panel--calendar .cell-dots {
+    gap: 2px;
   }
 
-  .view-panel--calendar .member-pill__avatar {
-    width: 28px;
-    height: 28px;
-    font-size: 0.72rem;
+  .view-panel--calendar .status-dot {
+    width: 1rem;
+    height: 1rem;
+    font-size: 0.48rem;
+    border-width: 1.5px;
   }
 
-  .view-panel--calendar .member-pill__state {
-    width: 28px;
-    height: 28px;
-    border-radius: 10px;
+  .view-panel--calendar .hint--compact {
+    margin-top: 10px;
+    justify-content: center;
+    gap: 6px;
+    flex-wrap: wrap;
   }
 
-  .view-panel--calendar .cell-future-note {
-    padding: 12px 8px 8px;
-    font-size: 0.72rem;
+  .view-panel--calendar .hint--compact .hint__item {
+    padding: 5px 8px;
+    font-size: 0.68rem;
+    gap: 4px;
   }
 
-  .view-panel--calendar .hint {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    gap: 8px;
-    padding: 4px 2px 8px;
-    margin-top: 14px;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-  }
-
-  .view-panel--calendar .hint::-webkit-scrollbar {
-    height: 0;
-  }
-
-  .view-panel--calendar .hint__item {
-    flex-shrink: 0;
-    padding: 7px 11px;
-    font-size: 0.74rem;
+  .view-panel--calendar .hint--compact .hint__label {
+    font-size: 0.68rem;
   }
 }
 
@@ -1964,6 +2011,15 @@ html[data-theme="dark"] .member-pill__name {
 html[data-theme="dark"] .member-pill__state {
   background: rgba(255, 255, 255, 0.06);
   border-color: rgba(148, 163, 184, 0.16);
+}
+
+html[data-theme="dark"] .status-dot--none {
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+html[data-theme="dark"] .view-panel--calendar .cell {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(148, 163, 184, 0.14);
 }
 
 /* Hint chips */

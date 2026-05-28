@@ -637,6 +637,79 @@ function setupThemeToggle() {
   });
 }
 
+function isMobileCalendar() {
+  return window.matchMedia && window.matchMedia("(max-width: 767px)").matches;
+}
+
+/**
+ * @param {HTMLElement} usersEl
+ * @param {{ key: string, outside: boolean, futureInMonth: boolean, futurePadding: boolean, todayKey: string }} ctx
+ */
+function renderCellMembers(usersEl, ctx) {
+  const { key, outside, futureInMonth, futurePadding, todayKey } = ctx;
+  const compact = isMobileCalendar();
+
+  if (futureInMonth || futurePadding) {
+    if (!compact) {
+      const note = document.createElement("div");
+      note.className = "cell-future-note";
+      note.textContent = "기록 없음";
+      usersEl.appendChild(note);
+    }
+    return;
+  }
+
+  if (compact) {
+    const dots = document.createElement("div");
+    dots.className = "cell-dots";
+    dots.setAttribute("role", "group");
+    dots.setAttribute("aria-label", "구성원 복용 상태");
+
+    MEMBERS.forEach((m) => {
+      const status = outside
+        ? "none"
+        : key === todayKey
+          ? getMemberStatusFromSlots(key, m.id)
+          : getStatusForMember(key, m.id);
+      const dot = document.createElement("span");
+      dot.className = `status-dot status-dot--${status}`;
+      dot.style.setProperty("--member", m.color);
+      const vLine = vitaminsSummary(m);
+      dot.title = vLine
+        ? `${m.name} (${vLine}) — ${labelStatus(status)}`
+        : `${m.name}: ${labelStatus(status)}`;
+      dot.setAttribute("aria-label", dot.title);
+      dot.textContent = memberInitial(m.name);
+      dots.appendChild(dot);
+    });
+
+    usersEl.appendChild(dots);
+    return;
+  }
+
+  MEMBERS.forEach((m) => {
+    const status = outside
+      ? "none"
+      : key === todayKey
+        ? getMemberStatusFromSlots(key, m.id)
+        : getStatusForMember(key, m.id);
+    const row = document.createElement("div");
+    row.className = "member-pill member-pill--" + status;
+    const vLine = vitaminsSummary(m);
+    row.title = vLine
+      ? `${m.name} (${vLine}) — ${labelStatus(status)}`
+      : `${m.name}: ${labelStatus(status)}`;
+
+    row.innerHTML = `
+        <span class="member-pill__avatar" style="--member:${m.color}">${escapeHtml(memberInitial(m.name))}</span>
+        <span class="member-pill__name">${escapeHtml(m.name)}</span>
+        <span class="member-pill__state">${statusIconSvg(status)}</span>
+      `;
+
+    usersEl.appendChild(row);
+  });
+}
+
 function renderCalendar() {
   ensureMonthSample(viewYear, viewMonth);
 
@@ -648,6 +721,7 @@ function renderCalendar() {
 
   const grid = document.getElementById("calendar-grid");
   if (!grid) return;
+  grid.classList.toggle("grid--compact", isMobileCalendar());
   grid.innerHTML = "";
 
   const first = new Date(viewYear, viewMonth, 1);
@@ -704,7 +778,7 @@ function renderCalendar() {
     dateEl.className = "cell-date";
     dateEl.textContent = String(date.getDate());
 
-    if (isToday) {
+    if (isToday && !isMobileCalendar()) {
       const badge = document.createElement("span");
       badge.className = "cell-today-badge";
       badge.textContent = "오늘";
@@ -718,35 +792,7 @@ function renderCalendar() {
 
     const usersEl = document.createElement("div");
     usersEl.className = "cell-users";
-
-    if (futureInMonth || futurePadding) {
-      const note = document.createElement("div");
-      note.className = "cell-future-note";
-      note.textContent = "기록 없음";
-      usersEl.appendChild(note);
-    } else {
-      MEMBERS.forEach((m) => {
-        const status = outside
-          ? "none"
-          : key === todayKey
-            ? getMemberStatusFromSlots(key, m.id)
-            : getStatusForMember(key, m.id);
-        const row = document.createElement("div");
-        row.className = "member-pill member-pill--" + status;
-        const vLine = vitaminsSummary(m);
-        row.title = vLine
-          ? `${m.name} (${vLine}) — ${labelStatus(status)}`
-          : `${m.name}: ${labelStatus(status)}`;
-
-        row.innerHTML = `
-        <span class="member-pill__avatar" style="--member:${m.color}">${escapeHtml(memberInitial(m.name))}</span>
-        <span class="member-pill__name">${escapeHtml(m.name)}</span>
-        <span class="member-pill__state">${statusIconSvg(status)}</span>
-      `;
-
-        usersEl.appendChild(row);
-      });
-    }
+    renderCellMembers(usersEl, { key, outside, futureInMonth, futurePadding, todayKey });
 
     cell.appendChild(usersEl);
     frag.appendChild(cell);
@@ -1084,3 +1130,9 @@ startNotificationScheduler();
 document.getElementById("btn-prev").addEventListener("click", () => goMonth(-1));
 document.getElementById("btn-next").addEventListener("click", () => goMonth(1));
 document.getElementById("btn-today").addEventListener("click", goToday);
+
+let calendarResizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(calendarResizeTimer);
+  calendarResizeTimer = setTimeout(renderCalendar, 160);
+});
