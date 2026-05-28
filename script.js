@@ -1003,8 +1003,6 @@ function clearNotificationTimers() {
 
 function canUseBrowserNotification() {
   if (!("Notification" in window)) return false;
-  // 일부 브라우저는 file:// 에서 알림이 제한될 수 있음
-  if (location && location.protocol === "file:") return false;
   return Notification.permission === "granted";
 }
 
@@ -1066,7 +1064,6 @@ function rescheduleNotifications() {
 
   if (!NOTIFY_SETTINGS.enabled) return;
   if (!("Notification" in window)) return;
-  if (location && location.protocol === "file:") return; // file:// 에서는 안정 동작 보장 불가
   if (Notification.permission !== "granted") return;
 
   const dateKey = toDateKey(new Date());
@@ -1111,13 +1108,45 @@ function rescheduleNotifications() {
   NOTIFY_TIMERS.push(setTimeout(rescheduleNotifications, Math.max(1000, untilNext)));
 }
 
+function checkNotificationsBackup() {
+  ensureNotifyDayRollover();
+  if (!NOTIFY_SETTINGS.enabled) return;
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+  const dateKey = toDateKey(new Date());
+  const now = Date.now();
+  const GRACE_MS = 10 * 60 * 1000; // 타이머 지연 대비: 10분 이내면 복용 알림 허용
+
+  VITAMINS.forEach((v) => {
+    (v.times || ["09:00"]).forEach((time) => {
+      const at = dateAtTime(dateKey, time).getTime();
+      const missedAt = at + NOTIFY_SETTINGS.missedDelayMinutes * 60 * 1000;
+
+      if (NOTIFY_SETTINGS.intakeReminder) {
+        if (now >= at && now <= at + GRACE_MS) fireIntakeNotify(dateKey, v, time);
+      }
+
+      if (NOTIFY_SETTINGS.missedReminder) {
+        if (now >= missedAt) fireMissedNotify(dateKey, v, time);
+      }
+    });
+  });
+}
+
 function startNotificationScheduler() {
   // 포커스/복귀 시 놓친 알림을 빠르게 보완
   window.addEventListener("focus", () => rescheduleNotifications());
   document.addEventListener("visibilitychange", () => {
-    if (!document.hidden) rescheduleNotifications();
+    if (!document.hidden) {
+      rescheduleNotifications();
+      checkNotificationsBackup();
+    }
   });
   rescheduleNotifications();
+
+  // 모바일 백그라운드/절전에서 타이머가 지연되는 경우가 있어 백업 체크를 병행
+  setInterval(checkNotificationsBackup, 60000);
+  checkNotificationsBackup();
 }
 
 function setupNotifySettings() {
@@ -1140,6 +1169,12 @@ function setupNotifySettings() {
     if (!("Notification" in window)) {
       status.textContent = "이 브라우저는 알림을 지원하지 않습니다.";
       status.className = "form-msg form-msg--err";
+      return;
+    }
+    if (location && location.protocol === "file:") {
+      status.textContent =
+        "참고: 파일로 직접 열면(file://) 모바일에서 알림이 막히거나 불안정할 수 있습니다. (Live Server 권장)";
+      status.className = "form-msg";
       return;
     }
     const perm = Notification.permission;
