@@ -120,6 +120,59 @@ body {
   outline-offset: 2px;
 }
 
+/* 토스트(화면 알림) */
+.toast-root {
+  position: fixed;
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  bottom: max(14px, env(safe-area-inset-bottom));
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.toast-root--show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.toast {
+  pointer-events: none;
+  border-radius: 16px;
+  padding: 12px 14px 12px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.22);
+  backdrop-filter: blur(10px);
+}
+
+.toast__title {
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+
+.toast__body {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.toast--ok {
+  border-color: rgba(5, 150, 105, 0.28);
+  background: linear-gradient(135deg, rgba(209, 250, 229, 0.92), rgba(255, 255, 255, 0.92));
+}
+
+.toast--warn {
+  border-color: rgba(225, 29, 72, 0.26);
+  background: linear-gradient(135deg, rgba(255, 228, 230, 0.92), rgba(255, 255, 255, 0.92));
+}
+
 .theme-toggle__icon {
   position: relative;
   width: 18px;
@@ -2054,6 +2107,25 @@ html[data-theme="dark"] .theme-toggle {
 
 html[data-theme="dark"] .theme-toggle:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+html[data-theme="dark"] .toast {
+  background: rgba(15, 23, 42, 0.78);
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+html[data-theme="dark"] .toast__body {
+  color: rgba(229, 231, 235, 0.78);
+}
+
+html[data-theme="dark"] .toast--ok {
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.18), rgba(15, 23, 42, 0.76));
+  border-color: rgba(5, 150, 105, 0.24);
+}
+
+html[data-theme="dark"] .toast--warn {
+  background: linear-gradient(135deg, rgba(225, 29, 72, 0.18), rgba(15, 23, 42, 0.76));
+  border-color: rgba(225, 29, 72, 0.22);
 }
 
 html[data-theme="dark"] .daily-member,

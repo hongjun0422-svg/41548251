@@ -992,6 +992,95 @@ function showBrowserNotification(title, body, tag) {
   }
 }
 
+/** @type {HTMLDivElement | null} */
+let TOAST_ROOT = null;
+/** @type {number | null} */
+let TOAST_HIDE_TIMER = null;
+/** @type {{ title: string; body: string; tone: "ok" | "warn" }[]} */
+let TOAST_QUEUE = [];
+
+function ensureToastRoot() {
+  if (TOAST_ROOT) return TOAST_ROOT;
+  const root = document.createElement("div");
+  root.id = "toast-root";
+  root.className = "toast-root";
+  root.setAttribute("aria-live", "polite");
+  root.setAttribute("aria-atomic", "true");
+  document.body.appendChild(root);
+  TOAST_ROOT = root;
+  return root;
+}
+
+/**
+ * @param {string} title
+ * @param {string} body
+ * @param {"ok"|"warn"} tone
+ */
+function showToast(title, body, tone) {
+  const root = ensureToastRoot();
+  root.innerHTML = `
+    <div class="toast toast--${tone}" role="status">
+      <div class="toast__title">${escapeHtml(title)}</div>
+      <div class="toast__body">${escapeHtml(body)}</div>
+    </div>
+  `;
+  root.classList.add("toast-root--show");
+
+  if (TOAST_HIDE_TIMER) window.clearTimeout(TOAST_HIDE_TIMER);
+  TOAST_HIDE_TIMER = window.setTimeout(() => {
+    root.classList.remove("toast-root--show");
+    // 다음 토스트가 있으면 이어서 표시
+    if (TOAST_QUEUE.length > 0) {
+      const next = TOAST_QUEUE.shift();
+      if (next) showToast(next.title, next.body, next.tone);
+    }
+  }, 3800);
+}
+
+/**
+ * @param {string} title
+ * @param {string} body
+ * @param {"ok"|"warn"} tone
+ */
+function enqueueToast(title, body, tone) {
+  // 이미 보여주는 중이면 큐잉
+  if (TOAST_ROOT && TOAST_ROOT.classList.contains("toast-root--show")) {
+    TOAST_QUEUE.push({ title, body, tone });
+    // 큐는 너무 길어지지 않게 제한
+    if (TOAST_QUEUE.length > 5) TOAST_QUEUE = TOAST_QUEUE.slice(-5);
+    return;
+  }
+  showToast(title, body, tone);
+}
+
+/** @param {"intake"|"missed"} kind */
+function vibrateFor(kind) {
+  if (!("vibrate" in navigator)) return;
+  try {
+    // 모바일에서 확실히 느껴지도록 짧은 패턴
+    const pattern = kind === "intake" ? [80, 60, 80] : [120, 80, 120, 80, 120];
+    navigator.vibrate(pattern);
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * 시스템 알림 + 토스트 + 진동을 함께 수행 (가능한 만큼)
+ * @param {string} title
+ * @param {string} body
+ * @param {string} tag
+ * @param {"intake"|"missed"} kind
+ */
+function notifyUser(title, body, tag, kind) {
+  // 시스템 알림(가능한 경우)
+  if (canUseBrowserNotification()) showBrowserNotification(title, body, tag);
+  // 앱 내부 토스트(항상)
+  enqueueToast(title, body, kind === "intake" ? "ok" : "warn");
+  // 진동(가능한 경우)
+  vibrateFor(kind);
+}
+
 /** @type {number[]} */
 let NOTIFY_TIMERS = [];
 let NOTIFY_DAY_KEY = toDateKey(new Date());
@@ -1025,16 +1114,16 @@ function ensureNotifyDayRollover() {
 function fireIntakeNotify(dateKey, v, time) {
   ensureNotifyDayRollover();
   if (!NOTIFY_SETTINGS.enabled || !NOTIFY_SETTINGS.intakeReminder) return;
-  if (!canUseBrowserNotification()) return;
   if (dateKey !== toDateKey(new Date())) return;
 
   const intakeKey = `intake|${dateKey}|${v.id}|${time}`;
   if (wasNotifySent(intakeKey)) return;
 
-  showBrowserNotification(
+  notifyUser(
     "복용 시간입니다",
     `${memberName(v.memberId)}님, ${v.name}(${time}) 복용 시간입니다.`,
-    intakeKey
+    intakeKey,
+    "intake"
   );
   markNotifySent(intakeKey);
 }
@@ -1042,17 +1131,17 @@ function fireIntakeNotify(dateKey, v, time) {
 function fireMissedNotify(dateKey, v, time) {
   ensureNotifyDayRollover();
   if (!NOTIFY_SETTINGS.enabled || !NOTIFY_SETTINGS.missedReminder) return;
-  if (!canUseBrowserNotification()) return;
   if (dateKey !== toDateKey(new Date())) return;
 
   const missedKey = `missed|${dateKey}|${v.id}|${time}`;
   if (wasNotifySent(missedKey)) return;
   if (isSlotTaken(dateKey, v.id, time)) return;
 
-  showBrowserNotification(
+  notifyUser(
     "미복용 알림",
     `${memberName(v.memberId)}님, ${v.name}(${time}) 복용 기록이 없습니다.`,
-    missedKey
+    missedKey,
+    "missed"
   );
   markNotifySent(missedKey);
   syncMemberIntakeFromSlots(dateKey, v.memberId);
