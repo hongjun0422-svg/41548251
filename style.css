@@ -1294,8 +1294,17 @@ html[data-theme="dark"] .theme-ico--moon {
 }
 
 @media (max-width: 359px) {
-  .calendar-sheet {
-    min-width: 340px;
+  .view-panel--calendar .calendar-sheet {
+    min-width: 0;
+  }
+
+  .view-panel--calendar .cell {
+    min-height: 4.85rem;
+  }
+
+  .view-panel--calendar .grid,
+  .view-panel--calendar .grid--compact {
+    grid-auto-rows: minmax(4.85rem, auto);
   }
 }
 
@@ -1740,18 +1749,18 @@ html[data-theme="dark"] .theme-ico--moon {
   .view-panel--calendar .calendar-sheet {
     min-width: 0;
     width: 100%;
-    padding: 10px 8px 12px;
+    padding: 12px 10px 14px;
   }
 
   .view-panel--calendar .weekdays {
-    gap: 2px;
-    margin-bottom: 6px;
+    gap: 4px;
+    margin-bottom: 8px;
   }
 
   .view-panel--calendar .weekday {
-    padding: 4px 0;
-    font-size: 0.62rem;
-    letter-spacing: 0;
+    padding: 6px 0;
+    font-size: 0.68rem;
+    letter-spacing: 0.02em;
   }
 
   .view-panel--calendar .weekday__dot {
@@ -1759,60 +1768,68 @@ html[data-theme="dark"] .theme-ico--moon {
   }
 
   .view-panel--calendar .weekday__label {
-    font-size: 0.62rem;
+    font-size: 0.68rem;
   }
 
   .view-panel--calendar .grid,
   .view-panel--calendar .grid--compact {
-    gap: 4px;
+    gap: 5px;
+    grid-auto-rows: minmax(5.25rem, auto);
   }
 
   .view-panel--calendar .cell {
-    min-height: 0;
-    aspect-ratio: 1;
-    padding: 4px 3px 5px;
-    gap: 3px;
-    border-radius: 10px;
+    min-height: 5.25rem;
+    aspect-ratio: auto;
+    padding: 7px 5px 8px;
+    gap: 6px;
+    border-radius: 11px;
     justify-content: flex-start;
   }
 
   .view-panel--calendar .cell--today {
     box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.35);
+    min-height: 5.5rem;
   }
 
   .view-panel--calendar .cell--future {
-    min-height: 0;
-    aspect-ratio: 1;
+    min-height: 3.75rem;
+    aspect-ratio: auto;
     opacity: 0.55;
   }
 
   .view-panel--calendar .cell-top {
-    min-height: 0;
+    min-height: 1.15rem;
     justify-content: center;
+    flex-shrink: 0;
   }
 
   .view-panel--calendar .cell-date {
-    font-size: 0.78rem;
+    font-size: 0.88rem;
     width: 100%;
     text-align: center;
+    line-height: 1.2;
   }
 
   .view-panel--calendar .cell-users {
-    margin-top: 0;
+    margin-top: auto;
     flex: 1;
     align-items: center;
     justify-content: center;
+    min-height: 3rem;
   }
 
   .view-panel--calendar .cell-dots {
-    gap: 2px;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
   }
 
   .view-panel--calendar .status-dot {
-    width: 1rem;
-    height: 1rem;
-    font-size: 0.48rem;
-    border-width: 1.5px;
+    width: 1.35rem;
+    height: 1.35rem;
+    font-size: 0.58rem;
+    border-width: 2px;
   }
 
   .view-panel--calendar .hint--compact {
