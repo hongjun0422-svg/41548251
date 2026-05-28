@@ -24,14 +24,25 @@ const MEMBERS = [
 
 /**
  * 비타민 등록 데이터
- * @typedef {{ id: string; name: string; ingredients: string; memberId: string; dosage: string }} Vitamin
+ * @typedef {{ id: string; name: string; ingredients: string; memberId: string; dosage: string; times: string[] }} Vitamin
  */
 
 /**
- * 날짜별 복용 기록 (오늘 및 과거만 샘플로 채움)
+ * @typedef {{ enabled: boolean; intakeReminder: boolean; missedReminder: boolean; missedDelayMinutes: number }} NotifySettings
+ */
+
+/**
+ * 날짜별 구성원 복용 요약 (캘린더용, 슬롯 기록에서 자동 계산)
  * @type {Record<string, Record<string, boolean>>}
  */
 const INTAKE_LOG = {};
+
+/**
+ * 날짜·비타민·시간대별 복용 기록
+ * 키: "YYYY-MM-DD|vitaminId|HH:mm"
+ * @type {Record<string, boolean>}
+ */
+const SLOT_LOG = {};
 
 const _initial = new Date();
 let viewYear = _initial.getFullYear();
@@ -42,9 +53,23 @@ const WEEKDAY_NAMES = ["일요일", "월요일", "화요일", "수요일", "목�
 
 const THEME_STORAGE_KEY = "vitaminTheme";
 const VITAMIN_STORAGE_KEY = "vitaminRegistry";
+const SLOT_LOG_KEY = "vitaminSlotLog";
+const NOTIFY_SETTINGS_KEY = "vitaminNotifySettings";
+const NOTIFY_SENT_KEY = "vitaminNotifySent";
 
 /** @type {Vitamin[]} */
 let VITAMINS = [];
+
+/** @type {NotifySettings} */
+let NOTIFY_SETTINGS = {
+  enabled: true,
+  intakeReminder: true,
+  missedReminder: true,
+  missedDelayMinutes: 30,
+};
+
+/** @type {Record<string, string[]>} 오늘 이미 보낸 알림 키 */
+let NOTIFY_SENT_TODAY = {};
 
 function pad2(n) {
   return String(n).padStart(2, "0");
@@ -100,6 +125,35 @@ function uuid() {
   return `v_${Date.now()}_${Math.random().toString(16).slice(2)}`;
 }
 
+/** @param {string} raw */
+function parseTimesInput(raw) {
+  if (!raw || !String(raw).trim()) return [];
+  return String(raw)
+    .split(/[,，\s]+/)
+    .map((t) => t.trim())
+    .filter((t) => /^\d{1,2}:\d{2}$/.test(t))
+    .map((t) => {
+      const [h, m] = t.split(":").map(Number);
+      return `${pad2(h)}:${pad2(m)}`;
+    });
+}
+
+/** @param {string[]} times */
+function formatTimes(times) {
+  return times && times.length ? times.join(", ") : "09:00";
+}
+
+/** @param {string} dateKey @param {string} vitaminId @param {string} time */
+function slotLogKey(dateKey, vitaminId, time) {
+  return `${dateKey}|${vitaminId}|${time}`;
+}
+
+/** @param {string} time HH:mm */
+function timeToMinutes(time) {
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + m;
+}
+
 /** @returns {Vitamin[]} */
 function defaultVitamins() {
   return [
@@ -109,6 +163,7 @@ function defaultVitamins() {
       name: "종합비타민",
       dosage: "1정",
       ingredients: "비타민 A, B군, C, D, E, 미네랄",
+      times: ["08:00"],
     },
     {
       id: uuid(),
@@ -116,6 +171,7 @@ function defaultVitamins() {
       name: "유산균",
       dosage: "1캡슐",
       ingredients: "프로바이오틱스, 프리바이오틱스",
+      times: ["21:00"],
     },
     {
       id: uuid(),
@@ -123,6 +179,7 @@ function defaultVitamins() {
       name: "오메가3",
       dosage: "1캡슐",
       ingredients: "EPA/DHA, 비타민E",
+      times: ["08:30"],
     },
     {
       id: uuid(),
@@ -130,6 +187,7 @@ function defaultVitamins() {
       name: "밀크시슬",
       dosage: "1정",
       ingredients: "실리마린",
+      times: ["21:30"],
     },
     {
       id: uuid(),
@@ -137,6 +195,7 @@ function defaultVitamins() {
       name: "어린이 종합비타민",
       dosage: "1정",
       ingredients: "비타민/미네랄 (어린이용 배합)",
+      times: ["09:00"],
     },
     {
       id: uuid(),
@@ -144,6 +203,7 @@ function defaultVitamins() {
       name: "칼슘",
       dosage: "1정",
       ingredients: "칼슘, 비타민D",
+      times: ["20:00"],
     },
   ];
 }
@@ -160,13 +220,22 @@ function loadVitamins() {
     if (Array.isArray(parsed)) {
       VITAMINS = parsed
         .filter((x) => x && typeof x === "object")
-        .map((x) => ({
-          id: String(x.id || uuid()),
-          name: String(x.name || ""),
-          ingredients: String(x.ingredients || ""),
-          memberId: String(x.memberId || ""),
-          dosage: String(x.dosage || ""),
-        }))
+        .map((x) => {
+          const times = Array.isArray(x.times)
+            ? x.times.filter((t) => /^\d{1,2}:\d{2}$/.test(String(t)))
+            : parseTimesInput(x.times || "09:00");
+          return {
+            id: String(x.id || uuid()),
+            name: String(x.name || ""),
+            ingredients: String(x.ingredients || ""),
+            memberId: String(x.memberId || ""),
+            dosage: String(x.dosage || ""),
+            times: times.length ? times.map((t) => {
+              const [h, m] = String(t).split(":").map(Number);
+              return `${pad2(h)}:${pad2(m)}`;
+            }) : ["09:00"],
+          };
+        })
         .filter((x) => x.name && x.ingredients && x.memberId && x.dosage);
       return;
     }
@@ -183,6 +252,151 @@ function saveVitamins() {
   } catch {
     // ignore
   }
+}
+
+function loadSlotLog() {
+  try {
+    const raw = localStorage.getItem(SLOT_LOG_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object") {
+      Object.keys(parsed).forEach((k) => {
+        if (parsed[k]) SLOT_LOG[k] = true;
+      });
+    }
+  } catch {
+    // ignore
+  }
+}
+
+function saveSlotLog() {
+  try {
+    localStorage.setItem(SLOT_LOG_KEY, JSON.stringify(SLOT_LOG));
+  } catch {
+    // ignore
+  }
+}
+
+function loadNotifySettings() {
+  try {
+    const raw = localStorage.getItem(NOTIFY_SETTINGS_KEY);
+    if (!raw) return;
+    const p = JSON.parse(raw);
+    NOTIFY_SETTINGS = {
+      enabled: p.enabled !== false,
+      intakeReminder: p.intakeReminder !== false,
+      missedReminder: p.missedReminder !== false,
+      missedDelayMinutes: Number(p.missedDelayMinutes) || 30,
+    };
+  } catch {
+    // ignore
+  }
+}
+
+function saveNotifySettings() {
+  try {
+    localStorage.setItem(NOTIFY_SETTINGS_KEY, JSON.stringify(NOTIFY_SETTINGS));
+  } catch {
+    // ignore
+  }
+}
+
+function loadNotifySent() {
+  const today = toDateKey(new Date());
+  try {
+    const raw = localStorage.getItem(NOTIFY_SENT_KEY);
+    if (!raw) return;
+    const all = JSON.parse(raw);
+    NOTIFY_SENT_TODAY = all[today] && Array.isArray(all[today]) ? { [today]: all[today] } : {};
+  } catch {
+    NOTIFY_SENT_TODAY = {};
+  }
+}
+
+function saveNotifySent() {
+  const today = toDateKey(new Date());
+  try {
+    const raw = localStorage.getItem(NOTIFY_SENT_KEY);
+    const all = raw ? JSON.parse(raw) : {};
+    all[today] = NOTIFY_SENT_TODAY[today] || [];
+    localStorage.setItem(NOTIFY_SENT_KEY, JSON.stringify(all));
+  } catch {
+    // ignore
+  }
+}
+
+function markNotifySent(key) {
+  const today = toDateKey(new Date());
+  if (!NOTIFY_SENT_TODAY[today]) NOTIFY_SENT_TODAY[today] = [];
+  if (!NOTIFY_SENT_TODAY[today].includes(key)) {
+    NOTIFY_SENT_TODAY[today].push(key);
+    saveNotifySent();
+  }
+}
+
+function wasNotifySent(key) {
+  const today = toDateKey(new Date());
+  return (NOTIFY_SENT_TODAY[today] || []).includes(key);
+}
+
+/** @param {string} dateKey @param {string} vitaminId @param {string} time */
+function isSlotTaken(dateKey, vitaminId, time) {
+  return !!SLOT_LOG[slotLogKey(dateKey, vitaminId, time)];
+}
+
+/** @param {string} dateKey @param {string} vitaminId @param {string} time */
+function setSlotTaken(dateKey, vitaminId, time, taken) {
+  const key = slotLogKey(dateKey, vitaminId, time);
+  if (taken) SLOT_LOG[key] = true;
+  else delete SLOT_LOG[key];
+  saveSlotLog();
+}
+
+/**
+ * @param {string} dateKey
+ * @param {string} memberId
+ * @returns {{ vitamin: Vitamin; time: string }[]}
+ */
+function getMemberSlots(dateKey, memberId) {
+  const slots = [];
+  vitaminsForMember(memberId).forEach((v) => {
+    (v.times || ["09:00"]).forEach((time) => {
+      slots.push({ vitamin: v, time });
+    });
+  });
+  slots.sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+  return slots;
+}
+
+/** @param {string} dateKey @param {string} vitaminId @param {string} time */
+function isSlotOverdue(dateKey, vitaminId, time) {
+  if (dateKey !== toDateKey(new Date())) return false;
+  if (isSlotTaken(dateKey, vitaminId, time)) return false;
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const dueMin = timeToMinutes(time) + NOTIFY_SETTINGS.missedDelayMinutes;
+  return nowMin >= dueMin;
+}
+
+/** @param {string} dateKey @param {string} memberId */
+function syncMemberIntakeFromSlots(dateKey, memberId) {
+  const slots = getMemberSlots(dateKey, memberId);
+  if (!INTAKE_LOG[dateKey]) INTAKE_LOG[dateKey] = {};
+  if (slots.length === 0) {
+    delete INTAKE_LOG[dateKey][memberId];
+    return;
+  }
+  const allTaken = slots.every((s) => isSlotTaken(dateKey, s.vitamin.id, s.time));
+  const anyMissed = slots.some((s) => isSlotOverdue(dateKey, s.vitamin.id, s.time));
+  if (allTaken) INTAKE_LOG[dateKey][memberId] = true;
+  else if (anyMissed) INTAKE_LOG[dateKey][memberId] = false;
+  else delete INTAKE_LOG[dateKey][memberId];
+}
+
+/** @param {string} dateKey @param {string} memberId */
+function getMemberStatusFromSlots(dateKey, memberId) {
+  syncMemberIntakeFromSlots(dateKey, memberId);
+  return getStatusForMember(dateKey, memberId);
 }
 
 /** @param {string} memberId */
@@ -275,7 +489,7 @@ function renderVitaminPanel() {
         ? list
             .map(
               (v) =>
-                `<li><span class="vitamin-tag" title="${escapeHtml(v.ingredients)}">${escapeHtml(v.name)} · ${escapeHtml(v.dosage)}</span></li>`
+                `<li><span class="vitamin-tag" title="${escapeHtml(v.ingredients)}">${escapeHtml(v.name)} · ${escapeHtml(v.dosage)} · ${escapeHtml(formatTimes(v.times))}</span></li>`
             )
             .join("")
         : `<li><span class="vitamin-tag vitamin-tag--empty">등록된 비타민 없음</span></li>`;
@@ -312,35 +526,53 @@ function renderDailySummary() {
   const key = toDateKey(now);
 
   listEl.innerHTML = MEMBERS.map((m) => {
-    const status = getStatusForMember(key, m.id);
-    const vitamins = vitaminsForMember(m.id);
-    const vlist =
-      vitamins.length > 0
-        ? vitamins
-            .map(
-              (v) =>
-                `<span class="daily-vtag" title="${escapeHtml(v.ingredients)}">${escapeHtml(v.name)} · ${escapeHtml(v.dosage)}</span>`
-            )
-            .join("")
-        : "";
-    const vitaminsBlock = vlist
-      ? `<div class="daily-row__vitamins" aria-label="복용 중인 비타민">${vlist}</div>`
-      : "";
+    const status = getMemberStatusFromSlots(key, m.id);
+    const slots = getMemberSlots(key, m.id);
 
-    return `<div class="daily-row daily-row--${status}">
-      <div class="daily-row__main">
+    const slotsHtml =
+      slots.length > 0
+        ? slots
+            .map(({ vitamin: v, time }) => {
+              const taken = isSlotTaken(key, v.id, time);
+              const overdue = isSlotOverdue(key, v.id, time);
+              const rowClass = taken ? "slot-row--ok" : overdue ? "slot-row--miss" : "slot-row--pending";
+              return `<div class="slot-row ${rowClass}" data-vid="${escapeHtml(v.id)}" data-time="${escapeHtml(time)}">
+                <div class="slot-row__info">
+                  <span class="slot-row__time">${escapeHtml(time)}</span>
+                  <span class="slot-row__name">${escapeHtml(v.name)}</span>
+                  <span class="slot-row__dose">${escapeHtml(v.dosage)}</span>
+                </div>
+                <button type="button" class="slot-check ${taken ? "slot-check--done" : ""}" data-slot-check="${escapeHtml(v.id)}" data-slot-time="${escapeHtml(time)}">
+                  ${taken ? "완료" : "복용"}
+                </button>
+              </div>`;
+            })
+            .join("")
+        : `<p class="daily-empty">등록된 비타민이 없습니다. 비타민 등록 탭에서 추가하세요.</p>`;
+
+    return `<article class="daily-member daily-member--${status}">
+      <header class="daily-member__head">
         <span class="daily-row__avatar" style="--member:${m.color}">${escapeHtml(memberInitial(m.name))}</span>
-        <div class="daily-row__meta">
-          <span class="daily-row__name">${escapeHtml(m.name)}</span>
-          ${vitaminsBlock}
-        </div>
-      </div>
-      <div class="daily-row__state">
-        <span class="daily-row__label">${escapeHtml(labelStatus(status))}</span>
-        <span class="daily-row__ico">${statusIconSvg(status)}</span>
-      </div>
-    </div>`;
+        <span class="daily-member__name">${escapeHtml(m.name)}</span>
+        <span class="daily-member__status">${escapeHtml(labelStatus(status))}</span>
+        <span class="daily-member__ico">${statusIconSvg(status)}</span>
+      </header>
+      <div class="daily-member__slots">${slotsHtml}</div>
+    </article>`;
   }).join("");
+
+  listEl.querySelectorAll("[data-slot-check]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const vid = btn.getAttribute("data-slot-check");
+      const time = btn.getAttribute("data-slot-time");
+      if (!vid || !time) return;
+      const taken = !isSlotTaken(key, vid, time);
+      setSlotTaken(key, vid, time, taken);
+      MEMBERS.forEach((m) => syncMemberIntakeFromSlots(key, m.id));
+      renderDailySummary();
+      renderCalendar();
+    });
+  });
 }
 
 function renderWeekdays() {
@@ -407,6 +639,9 @@ function setupThemeToggle() {
 
 function renderCalendar() {
   ensureMonthSample(viewYear, viewMonth);
+
+  const todayKey = toDateKey(new Date());
+  MEMBERS.forEach((m) => syncMemberIntakeFromSlots(todayKey, m.id));
 
   const label = document.getElementById("month-label");
   if (label) label.textContent = `${viewYear}년 ${viewMonth + 1}월`;
@@ -491,7 +726,11 @@ function renderCalendar() {
       usersEl.appendChild(note);
     } else {
       MEMBERS.forEach((m) => {
-        const status = outside ? "none" : getStatusForMember(key, m.id);
+        const status = outside
+          ? "none"
+          : key === todayKey
+            ? getMemberStatusFromSlots(key, m.id)
+            : getStatusForMember(key, m.id);
         const row = document.createElement("div");
         row.className = "member-pill member-pill--" + status;
         const vLine = vitaminsSummary(m);
@@ -539,31 +778,38 @@ function goToday() {
 
 function setupViewTabs() {
   const views = document.getElementById("views");
-  const tabDaily = document.getElementById("tab-daily");
   const tabCal = document.getElementById("tab-calendar");
+  const tabCheck = document.getElementById("tab-check");
   const tabManage = document.getElementById("tab-manage");
-  if (!views || !tabDaily || !tabCal || !tabManage) return;
+  const panelCal = document.getElementById("panel-calendar");
+  const panelCheck = document.getElementById("panel-check");
+  const panelManage = document.getElementById("panel-manage");
+  if (!views || !tabCal || !tabCheck || !tabManage) return;
 
   const tabs = [
-    { key: "daily", tab: tabDaily },
-    { key: "calendar", tab: tabCal },
-    { key: "manage", tab: tabManage },
+    { key: "calendar", tab: tabCal, panel: panelCal },
+    { key: "check", tab: tabCheck, panel: panelCheck },
+    { key: "manage", tab: tabManage, panel: panelManage },
   ];
 
   function activate(which) {
-    views.classList.toggle("tab-daily", which === "daily");
-    views.classList.toggle("tab-calendar", which === "calendar");
-    views.classList.toggle("tab-manage", which === "manage");
-    tabs.forEach(({ key, tab }) => {
+    views.classList.remove("tab-calendar", "tab-check", "tab-manage");
+    views.classList.add(`tab-${which}`);
+    tabs.forEach(({ key, tab, panel }) => {
       const on = key === which;
       tab.classList.toggle("view-tab--active", on);
       tab.setAttribute("aria-selected", String(on));
+      if (panel) {
+        if (on) panel.removeAttribute("hidden");
+        else panel.setAttribute("hidden", "");
+      }
     });
   }
 
-  tabDaily.addEventListener("click", () => activate("daily"));
   tabCal.addEventListener("click", () => activate("calendar"));
+  tabCheck.addEventListener("click", () => activate("check"));
   tabManage.addEventListener("click", () => activate("manage"));
+  activate("calendar");
 }
 
 function renderManage() {
@@ -591,6 +837,11 @@ function renderManage() {
               <span class="reg-dose">${escapeHtml(v.dosage)}</span>
             </div>
             <p class="reg-ing">${escapeHtml(v.ingredients)}</p>
+            <label class="reg-times-edit">
+              <span class="reg-times-edit__label">복용 시간</span>
+              <input class="field__control reg-times-input" type="text" value="${escapeHtml(formatTimes(v.times))}" data-times-edit="${escapeHtml(v.id)}" />
+            </label>
+            <button type="button" class="reg-save-times" data-save-times="${escapeHtml(v.id)}">시간 저장</button>
           </div>
           <button type="button" class="reg-del" data-del="${escapeHtml(v.id)}" aria-label="삭제">삭제</button>
         </div>`
@@ -613,6 +864,28 @@ function renderManage() {
       renderManage();
       renderVitaminPanel();
       renderDailySummary();
+      renderCalendar();
+    });
+  });
+
+  registry.querySelectorAll("[data-save-times]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.getAttribute("data-save-times");
+      if (!id) return;
+      const input = registry.querySelector(`[data-times-edit="${id}"]`);
+      const times = parseTimesInput(input?.value || "");
+      if (times.length === 0) {
+        alert("복용 시간을 HH:mm 형식으로 입력해 주세요. (예: 08:00, 21:00)");
+        return;
+      }
+      const v = VITAMINS.find((x) => x.id === id);
+      if (v) {
+        v.times = times;
+        saveVitamins();
+        renderManage();
+        renderVitaminPanel();
+        renderDailySummary();
+      }
     });
   });
 }
@@ -628,6 +901,7 @@ function setupVitaminForm() {
     const dosage = /** @type {HTMLInputElement} */ (document.getElementById("v-dosage"))?.value?.trim() || "";
     const ingredients = /** @type {HTMLTextAreaElement} */ (document.getElementById("v-ingredients"))?.value?.trim() || "";
     const memberId = /** @type {HTMLSelectElement} */ (document.getElementById("v-member"))?.value || "";
+    const times = parseTimesInput(/** @type {HTMLInputElement} */ (document.getElementById("v-times"))?.value || "");
 
     if (!name || !dosage || !ingredients || !memberId) {
       msg.textContent = "모든 항목을 입력해 주세요.";
@@ -635,12 +909,19 @@ function setupVitaminForm() {
       return;
     }
 
-    VITAMINS.unshift({ id: uuid(), name, dosage, ingredients, memberId });
+    if (times.length === 0) {
+      msg.textContent = "복용 시간을 HH:mm 형식으로 입력해 주세요. (예: 08:00, 21:00)";
+      msg.className = "form-msg form-msg--err";
+      return;
+    }
+
+    VITAMINS.unshift({ id: uuid(), name, dosage, ingredients, memberId, times });
     saveVitamins();
 
     /** @type {HTMLInputElement} */ (document.getElementById("v-name")).value = "";
     /** @type {HTMLInputElement} */ (document.getElementById("v-dosage")).value = "";
     /** @type {HTMLTextAreaElement} */ (document.getElementById("v-ingredients")).value = "";
+    /** @type {HTMLInputElement} */ (document.getElementById("v-times")).value = "";
 
     msg.textContent = `${memberName(memberId)}에게 '${name}'이(가) 등록되었습니다.`;
     msg.className = "form-msg form-msg--ok";
@@ -648,12 +929,147 @@ function setupVitaminForm() {
     renderManage();
     renderVitaminPanel();
     renderDailySummary();
+    renderCalendar();
   });
+}
+
+function showBrowserNotification(title, body, tag) {
+  if (!("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+  try {
+    new Notification(title, { body, tag });
+  } catch {
+    // ignore
+  }
+}
+
+function checkNotifications() {
+  if (!NOTIFY_SETTINGS.enabled) return;
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+  const dateKey = toDateKey(new Date());
+  const now = new Date();
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+
+  VITAMINS.forEach((v) => {
+    const member = memberName(v.memberId);
+    (v.times || ["09:00"]).forEach((time) => {
+      const schedMin = timeToMinutes(time);
+      const intakeKey = `intake|${dateKey}|${v.id}|${time}`;
+      const missedKey = `missed|${dateKey}|${v.id}|${time}`;
+
+      if (
+        NOTIFY_SETTINGS.intakeReminder &&
+        nowMin >= schedMin &&
+        nowMin < schedMin + 2 &&
+        !wasNotifySent(intakeKey)
+      ) {
+        showBrowserNotification(
+          "복용 시간입니다",
+          `${member}님, ${v.name}(${time}) 복용 시간입니다.`,
+          intakeKey
+        );
+        markNotifySent(intakeKey);
+      }
+
+      if (
+        NOTIFY_SETTINGS.missedReminder &&
+        nowMin >= schedMin + NOTIFY_SETTINGS.missedDelayMinutes &&
+        !isSlotTaken(dateKey, v.id, time) &&
+        !wasNotifySent(missedKey)
+      ) {
+        showBrowserNotification(
+          "미복용 알림",
+          `${member}님, ${v.name}(${time}) 복용 기록이 없습니다.`,
+          missedKey
+        );
+        markNotifySent(missedKey);
+        syncMemberIntakeFromSlots(dateKey, v.memberId);
+      }
+    });
+  });
+}
+
+function startNotificationScheduler() {
+  setInterval(checkNotifications, 30000);
+  checkNotifications();
+}
+
+function setupNotifySettings() {
+  const enabled = document.getElementById("notify-enabled");
+  const intake = document.getElementById("notify-intake");
+  const missed = document.getElementById("notify-missed");
+  const delay = document.getElementById("notify-delay");
+  const permBtn = document.getElementById("btn-notify-permission");
+  const status = document.getElementById("notify-status");
+
+  if (!enabled || !intake || !missed || !delay) return;
+
+  enabled.checked = NOTIFY_SETTINGS.enabled;
+  intake.checked = NOTIFY_SETTINGS.intakeReminder;
+  missed.checked = NOTIFY_SETTINGS.missedReminder;
+  delay.value = String(NOTIFY_SETTINGS.missedDelayMinutes);
+
+  function updateStatus() {
+    if (!status) return;
+    if (!("Notification" in window)) {
+      status.textContent = "이 브라우저는 알림을 지원하지 않습니다.";
+      status.className = "form-msg form-msg--err";
+      return;
+    }
+    const perm = Notification.permission;
+    if (perm === "granted") {
+      status.textContent = "알림 권한이 허용되었습니다. (탭을 열어 두면 동작합니다)";
+      status.className = "form-msg form-msg--ok";
+    } else if (perm === "denied") {
+      status.textContent = "알림이 차단되었습니다. 브라우저 설정에서 허용해 주세요.";
+      status.className = "form-msg form-msg--err";
+    } else {
+      status.textContent = "알림 권한을 요청해 주세요.";
+      status.className = "form-msg";
+    }
+  }
+
+  function persist() {
+    NOTIFY_SETTINGS = {
+      enabled: enabled.checked,
+      intakeReminder: intake.checked,
+      missedReminder: missed.checked,
+      missedDelayMinutes: Math.max(5, Math.min(180, Number(delay.value) || 30)),
+    };
+    saveNotifySettings();
+    updateStatus();
+  }
+
+  enabled.addEventListener("change", persist);
+  intake.addEventListener("change", persist);
+  missed.addEventListener("change", persist);
+  delay.addEventListener("change", persist);
+
+  if (permBtn) {
+    permBtn.addEventListener("click", async () => {
+      if (!("Notification" in window)) {
+        updateStatus();
+        return;
+      }
+      try {
+        await Notification.requestPermission();
+      } catch {
+        // ignore
+      }
+      updateStatus();
+    });
+  }
+
+  updateStatus();
 }
 
 purgeFutureIntakeLogs();
 setupThemeToggle();
 loadVitamins();
+loadSlotLog();
+loadNotifySettings();
+loadNotifySent();
 renderLegend();
 renderVitaminPanel();
 renderWeekdays();
@@ -662,6 +1078,8 @@ renderDailySummary();
 setupViewTabs();
 renderManage();
 setupVitaminForm();
+setupNotifySettings();
+startNotificationScheduler();
 
 document.getElementById("btn-prev").addEventListener("click", () => goMonth(-1));
 document.getElementById("btn-next").addEventListener("click", () => goMonth(1));

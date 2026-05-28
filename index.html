@@ -54,32 +54,17 @@
             <span class="theme-toggle__text">테마</span>
           </button>
         </div>
-        <p class="sub">오늘 복용과 지난 기록을 나누어 볼 수 있습니다.</p>
+        <p class="sub">캘린더에서 기록을 보고, 복용 체크 탭에서 오늘 복용을 기록하세요.</p>
       </header>
 
-      <div class="views tab-daily" id="views">
+      <div class="views tab-calendar" id="views">
         <div class="view-tabs" role="tablist" aria-label="화면 전환">
           <button
             type="button"
             class="view-tab view-tab--active"
-            id="tab-daily"
-            role="tab"
-            aria-selected="true"
-            aria-controls="panel-daily"
-            data-view="daily"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.75" />
-              <path d="M12 7v5l3 2" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
-            </svg>
-            오늘 요약
-          </button>
-          <button
-            type="button"
-            class="view-tab"
             id="tab-calendar"
             role="tab"
-            aria-selected="false"
+            aria-selected="true"
             aria-controls="panel-calendar"
             data-view="calendar"
           >
@@ -88,6 +73,21 @@
               <path d="M8 3v4M16 3v4M3 11h18" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
             </svg>
             캘린더
+          </button>
+          <button
+            type="button"
+            class="view-tab"
+            id="tab-check"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-check"
+            data-view="check"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" />
+              <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.75" />
+            </svg>
+            복용 체크
           </button>
           <button
             type="button"
@@ -111,67 +111,7 @@
           </button>
         </div>
 
-        <!-- 일간: 오늘 복용 + 비타민 정보 -->
-        <section
-          class="view-panel view-panel--daily"
-          id="panel-daily"
-          role="tabpanel"
-          aria-labelledby="tab-daily"
-        >
-          <div class="daily-hero card">
-            <p id="daily-date" class="daily-hero__date"></p>
-            <h2 class="daily-hero__title">오늘의 복용</h2>
-            <div id="daily-list" class="daily-list"></div>
-          </div>
-
-          <section class="vitamin-panel card" aria-labelledby="vitamin-panel-title">
-            <div class="vitamin-panel__head">
-              <span class="vitamin-panel__icon" aria-hidden="true">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
-                    stroke="currentColor"
-                    stroke-width="1.75"
-                    stroke-linecap="round"
-                  />
-                  <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.75" />
-                </svg>
-              </span>
-              <h2 id="vitamin-panel-title" class="vitamin-panel__title">구성원별 복용 비타민</h2>
-            </div>
-            <p class="vitamin-panel__desc">각 가족이 챙겨 먹는 영양제·비타민 종류입니다.</p>
-            <div id="vitamin-list" class="vitamin-list"></div>
-          </section>
-
-          <footer class="hint hint--daily">
-            <div class="hint__item hint__item--ok">
-              <span class="hint__ico" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
-                </svg>
-              </span>
-              <span>복용 완료</span>
-            </div>
-            <div class="hint__item hint__item--miss">
-              <span class="hint__ico" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
-                </svg>
-              </span>
-              <span>미복용</span>
-            </div>
-            <div class="hint__item hint__item--none">
-              <span class="hint__ico" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.75" stroke-dasharray="4 3" />
-                </svg>
-              </span>
-              <span>기록 없음</span>
-            </div>
-          </footer>
-        </section>
-
-        <!-- 캘린더: 월 이동 + 범례 + 그리드 -->
+        <!-- 메인: 캘린더 -->
         <section
           class="view-panel view-panel--calendar"
           id="panel-calendar"
@@ -258,12 +198,104 @@
           </footer>
         </section>
 
+        <!-- 복용 체크: 알림 + 오늘 슬롯 + 비타민 목록 -->
+        <section
+          class="view-panel view-panel--check"
+          id="panel-check"
+          role="tabpanel"
+          aria-labelledby="tab-check"
+          hidden
+        >
+          <section class="notify-settings card" aria-labelledby="notify-settings-title">
+            <div class="manage__head">
+              <h2 id="notify-settings-title" class="manage__title">알림 설정</h2>
+              <p class="manage__desc">복용 시간 알림·미복용 알림을 켜고 끌 수 있습니다.</p>
+            </div>
+            <div class="notify-settings__body">
+              <label class="notify-toggle">
+                <input type="checkbox" id="notify-enabled" />
+                <span>알림 사용</span>
+              </label>
+              <label class="notify-toggle">
+                <input type="checkbox" id="notify-intake" />
+                <span>복용 시간 알림</span>
+              </label>
+              <label class="notify-toggle">
+                <input type="checkbox" id="notify-missed" />
+                <span>미복용 알림</span>
+              </label>
+              <label class="field field--inline">
+                <span class="field__label">미복용 판정 (분 후)</span>
+                <input id="notify-delay" class="field__control" type="number" min="5" max="180" step="5" value="30" />
+              </label>
+              <button type="button" id="btn-notify-permission" class="btn btn-ghost btn-notify-perm">
+                알림 권한 요청
+              </button>
+              <p id="notify-status" class="form-msg" aria-live="polite"></p>
+            </div>
+          </section>
+
+          <div class="daily-hero card">
+            <p id="daily-date" class="daily-hero__date"></p>
+            <h2 class="daily-hero__title">오늘의 복용</h2>
+            <p class="daily-hero__hint">각 시간대 옆 버튼으로 복용 완료를 기록하세요.</p>
+            <div id="daily-list" class="daily-list"></div>
+          </div>
+
+          <section class="vitamin-panel card" aria-labelledby="vitamin-panel-title">
+            <div class="vitamin-panel__head">
+              <span class="vitamin-panel__icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"
+                    stroke="currentColor"
+                    stroke-width="1.75"
+                    stroke-linecap="round"
+                  />
+                  <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.75" />
+                </svg>
+              </span>
+              <h2 id="vitamin-panel-title" class="vitamin-panel__title">구성원별 복용 비타민</h2>
+            </div>
+            <p class="vitamin-panel__desc">각 가족이 챙겨 먹는 영양제·비타민 종류입니다.</p>
+            <div id="vitamin-list" class="vitamin-list"></div>
+          </section>
+
+          <footer class="hint hint--daily">
+            <div class="hint__item hint__item--ok">
+              <span class="hint__ico" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              </span>
+              <span>복용 완료</span>
+            </div>
+            <div class="hint__item hint__item--miss">
+              <span class="hint__ico" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" />
+                </svg>
+              </span>
+              <span>미복용</span>
+            </div>
+            <div class="hint__item hint__item--none">
+              <span class="hint__ico" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.75" stroke-dasharray="4 3" />
+                </svg>
+              </span>
+              <span>기록 없음</span>
+            </div>
+          </footer>
+        </section>
+
         <!-- 비타민 등록: 사용자가 직접 입력 -->
         <section
           class="view-panel view-panel--manage"
           id="panel-manage"
           role="tabpanel"
           aria-labelledby="tab-manage"
+          hidden
         >
           <section class="manage card">
             <div class="manage__head">
@@ -293,6 +325,19 @@
                   placeholder="예: EPA/DHA 1000mg, 비타민E 등"
                   required
                 ></textarea>
+              </label>
+
+              <label class="field">
+                <span class="field__label">복용 시간</span>
+                <input
+                  id="v-times"
+                  name="times"
+                  class="field__control"
+                  type="text"
+                  placeholder="예: 08:00, 21:00 (쉼표로 여러 개)"
+                  required
+                />
+                <span class="field__hint">24시간 형식(HH:mm). 알림은 이 시간에 보냅니다.</span>
               </label>
 
               <div class="form-row">
