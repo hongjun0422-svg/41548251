@@ -911,6 +911,7 @@ function renderManage() {
       renderVitaminPanel();
       renderDailySummary();
       renderCalendar();
+      rescheduleNotifications();
     });
   });
 
@@ -931,6 +932,7 @@ function renderManage() {
         renderManage();
         renderVitaminPanel();
         renderDailySummary();
+        rescheduleNotifications();
       }
     });
   });
@@ -976,6 +978,7 @@ function setupVitaminForm() {
     renderVitaminPanel();
     renderDailySummary();
     renderCalendar();
+    rescheduleNotifications();
   });
 }
 
@@ -989,56 +992,132 @@ function showBrowserNotification(title, body, tag) {
   }
 }
 
-function checkNotifications() {
+/** @type {number[]} */
+let NOTIFY_TIMERS = [];
+let NOTIFY_DAY_KEY = toDateKey(new Date());
+
+function clearNotificationTimers() {
+  NOTIFY_TIMERS.forEach((id) => clearTimeout(id));
+  NOTIFY_TIMERS = [];
+}
+
+function canUseBrowserNotification() {
+  if (!("Notification" in window)) return false;
+  // 일부 브라우저는 file:// 에서 알림이 제한될 수 있음
+  if (location && location.protocol === "file:") return false;
+  return Notification.permission === "granted";
+}
+
+/** @param {string} dateKey @param {string} time HH:mm */
+function dateAtTime(dateKey, time) {
+  const d = dateFromKey(dateKey);
+  const [h, m] = time.split(":").map(Number);
+  d.setHours(h, m, 0, 0);
+  return d;
+}
+
+function ensureNotifyDayRollover() {
+  const today = toDateKey(new Date());
+  if (today === NOTIFY_DAY_KEY) return;
+  NOTIFY_DAY_KEY = today;
+  // 날짜가 바뀌면 오늘 보낸 기록을 새로 로드(오늘 키만 유지)
+  loadNotifySent();
+}
+
+function fireIntakeNotify(dateKey, v, time) {
+  ensureNotifyDayRollover();
+  if (!NOTIFY_SETTINGS.enabled || !NOTIFY_SETTINGS.intakeReminder) return;
+  if (!canUseBrowserNotification()) return;
+  if (dateKey !== toDateKey(new Date())) return;
+
+  const intakeKey = `intake|${dateKey}|${v.id}|${time}`;
+  if (wasNotifySent(intakeKey)) return;
+
+  showBrowserNotification(
+    "복용 시간입니다",
+    `${memberName(v.memberId)}님, ${v.name}(${time}) 복용 시간입니다.`,
+    intakeKey
+  );
+  markNotifySent(intakeKey);
+}
+
+function fireMissedNotify(dateKey, v, time) {
+  ensureNotifyDayRollover();
+  if (!NOTIFY_SETTINGS.enabled || !NOTIFY_SETTINGS.missedReminder) return;
+  if (!canUseBrowserNotification()) return;
+  if (dateKey !== toDateKey(new Date())) return;
+
+  const missedKey = `missed|${dateKey}|${v.id}|${time}`;
+  if (wasNotifySent(missedKey)) return;
+  if (isSlotTaken(dateKey, v.id, time)) return;
+
+  showBrowserNotification(
+    "미복용 알림",
+    `${memberName(v.memberId)}님, ${v.name}(${time}) 복용 기록이 없습니다.`,
+    missedKey
+  );
+  markNotifySent(missedKey);
+  syncMemberIntakeFromSlots(dateKey, v.memberId);
+}
+
+function rescheduleNotifications() {
+  clearNotificationTimers();
+  ensureNotifyDayRollover();
+
   if (!NOTIFY_SETTINGS.enabled) return;
-  if (!("Notification" in window) || Notification.permission !== "granted") return;
+  if (!("Notification" in window)) return;
+  if (location && location.protocol === "file:") return; // file:// 에서는 안정 동작 보장 불가
+  if (Notification.permission !== "granted") return;
 
   const dateKey = toDateKey(new Date());
-  const now = new Date();
-  const nowMin = now.getHours() * 60 + now.getMinutes();
+  const now = Date.now();
+
+  // 이미 지나간 시각을 놓쳐도, "최근 N분"은 즉시 한 번 검사해서 보완
+  const GRACE_MS = 5 * 60 * 1000;
 
   VITAMINS.forEach((v) => {
-    const member = memberName(v.memberId);
     (v.times || ["09:00"]).forEach((time) => {
-      const schedMin = timeToMinutes(time);
-      const intakeKey = `intake|${dateKey}|${v.id}|${time}`;
-      const missedKey = `missed|${dateKey}|${v.id}|${time}`;
+      const at = dateAtTime(dateKey, time).getTime();
+      const missedAt =
+        at + Math.max(5, Math.min(180, NOTIFY_SETTINGS.missedDelayMinutes)) * 60 * 1000;
 
-      if (
-        NOTIFY_SETTINGS.intakeReminder &&
-        nowMin >= schedMin &&
-        nowMin < schedMin + 2 &&
-        !wasNotifySent(intakeKey)
-      ) {
-        showBrowserNotification(
-          "복용 시간입니다",
-          `${member}님, ${v.name}(${time}) 복용 시간입니다.`,
-          intakeKey
-        );
-        markNotifySent(intakeKey);
+      // 복용 알림
+      if (NOTIFY_SETTINGS.intakeReminder) {
+        if (at >= now) {
+          NOTIFY_TIMERS.push(setTimeout(() => fireIntakeNotify(dateKey, v, time), at - now));
+        } else if (now - at <= GRACE_MS) {
+          // 방금 지나간 경우 즉시 보완
+          NOTIFY_TIMERS.push(setTimeout(() => fireIntakeNotify(dateKey, v, time), 250));
+        }
       }
 
-      if (
-        NOTIFY_SETTINGS.missedReminder &&
-        nowMin >= schedMin + NOTIFY_SETTINGS.missedDelayMinutes &&
-        !isSlotTaken(dateKey, v.id, time) &&
-        !wasNotifySent(missedKey)
-      ) {
-        showBrowserNotification(
-          "미복용 알림",
-          `${member}님, ${v.name}(${time}) 복용 기록이 없습니다.`,
-          missedKey
-        );
-        markNotifySent(missedKey);
-        syncMemberIntakeFromSlots(dateKey, v.memberId);
+      // 미복용 알림
+      if (NOTIFY_SETTINGS.missedReminder) {
+        if (missedAt >= now) {
+          NOTIFY_TIMERS.push(
+            setTimeout(() => fireMissedNotify(dateKey, v, time), missedAt - now)
+          );
+        } else if (now - missedAt <= GRACE_MS) {
+          NOTIFY_TIMERS.push(setTimeout(() => fireMissedNotify(dateKey, v, time), 350));
+        }
       }
     });
   });
+
+  // 날짜 변경(자정) 이후 자동 재스케줄
+  const next = new Date();
+  next.setHours(24, 0, 5, 0);
+  const untilNext = next.getTime() - now;
+  NOTIFY_TIMERS.push(setTimeout(rescheduleNotifications, Math.max(1000, untilNext)));
 }
 
 function startNotificationScheduler() {
-  setInterval(checkNotifications, 30000);
-  checkNotifications();
+  // 포커스/복귀 시 놓친 알림을 빠르게 보완
+  window.addEventListener("focus", () => rescheduleNotifications());
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) rescheduleNotifications();
+  });
+  rescheduleNotifications();
 }
 
 function setupNotifySettings() {
@@ -1085,6 +1164,7 @@ function setupNotifySettings() {
     };
     saveNotifySettings();
     updateStatus();
+    rescheduleNotifications();
   }
 
   enabled.addEventListener("change", persist);
