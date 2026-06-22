@@ -165,9 +165,10 @@
                       <p class="dispense-selected__empty">「오늘의 복용」에서 항목을 선택하세요.</p>
                     </div>
                     <label class="field">
-                      <span class="field__label">라즈베리파이</span>
-                      <input id="dispense-pi-url" class="field__control" type="url" placeholder="https://xxxx.lhr.life/dispense" />
+                      <span class="field__label">라즈베리파이 (고정)</span>
+                      <input id="dispense-pi-url" class="field__control field__control--readonly" type="url" value="https://d0a10f1c3d4b3c.lhr.life/dispense" readonly />
                     </label>
+                    <p id="dispense-pi-status" class="form-msg form-msg--tiny" aria-live="polite"></p>
                     <div class="dispense__actions">
                       <button type="button" id="btn-dispense-start" class="btn btn-primary btn-block" disabled>시작</button>
                       <button type="button" id="btn-dispense-stop" class="btn btn-ghost btn-block" hidden>중지</button>

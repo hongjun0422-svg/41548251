@@ -11,7 +11,7 @@ GPIO로 스텝 모터 또는 DC 모터를 제어합니다.
 
 터널 (외부 접속):
   ssh -R 80:localhost:5000 nokey@localhost.run
-  → 발급된 URL을 웹앱 '라즈베리파이 주소'에 입력 (예: https://xxxx.lhr.life/dispense)
+  → 발급된 URL을 웹앱에 사용 (예: https://d0a10f1c3d4b3c.lhr.life/dispense)
 """
 
 from flask import Flask, jsonify

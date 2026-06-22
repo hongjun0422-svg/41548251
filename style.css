@@ -379,6 +379,8 @@ html[data-theme="dark"] .confirm-backdrop { background: rgba(0,0,0,.55); }
   font: inherit; font-size: .82rem; font-weight: 600; outline: none;
 }
 .field__control:focus { border-color: rgba(13,148,136,.55); box-shadow: 0 0 0 2px rgba(13,148,136,.15); }
+.field__control--readonly { opacity: .85; cursor: default; background: rgba(148,163,184,.08); }
+html[data-theme="dark"] .field__control--readonly { background: rgba(255,255,255,.04); }
 .field__control--textarea { resize: none; }
 .form--compact { padding-bottom: 6px !important; }
 .form--manage { padding: 0 14px 14px !important; }

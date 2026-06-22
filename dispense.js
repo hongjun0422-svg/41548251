@@ -12,7 +12,10 @@
   const CONFIDENCE_THRESHOLD = 0.9;
   const PREDICT_INTERVAL_MS = 200;
   const PI_URL_STORAGE_KEY = "dispensePiUrl";
-  const DEFAULT_PI_URL = "https://c61be2c605ca34.lhr.life/dispense";
+  const FIXED_PI_BASE = "https://d0a10f1c3d4b3c.lhr.life";
+  const DEFAULT_PI_URL = FIXED_PI_BASE + "/dispense";
+  const PI_HEALTH_URL = FIXED_PI_BASE + "/health";
+  const PI_FETCH_TIMEOUT_MS = 12000;
   const TEST_SLOT_VALUE = "__test__|test";
 
   let tmModel = null;
@@ -40,6 +43,10 @@
   let predictTimerId = null;
   let intakeHandled = false;
   let successBorderTimer = null;
+  /** @type {"idle"|"connecting"|"dispensing"|"done"|"error"} */
+  let piPhase = "idle";
+  let piPhaseMessage = "";
+  let piDispenseOk = false;
 
   function showSuccessBorder() {
     const stage = document.querySelector(".ai-layout__stage");
@@ -70,16 +77,109 @@
   }
 
   function getPiUrl() {
-    const input = document.getElementById("dispense-pi-url");
-    const fromInput = input && input.value.trim();
-    if (fromInput) return fromInput.replace(/\/$/, "");
-    try {
-      const saved = localStorage.getItem(PI_URL_STORAGE_KEY);
-      if (saved) return saved.replace(/\/$/, "");
-    } catch (e) {
-      // ignore
-    }
     return DEFAULT_PI_URL;
+  }
+
+  function setPiStatus(text, tone) {
+    const el = document.getElementById("dispense-pi-status");
+    if (!el) return;
+    el.textContent = text || "";
+    el.className = "form-msg form-msg--tiny" + (tone === "ok" ? " form-msg--ok" : tone === "err" ? " form-msg--err" : "");
+  }
+
+  function initPiUrlField() {
+    const piInput = document.getElementById("dispense-pi-url");
+    if (piInput) {
+      piInput.value = DEFAULT_PI_URL;
+      piInput.readOnly = true;
+    }
+    savePiUrl(DEFAULT_PI_URL);
+    setPiStatus("배출 단계에서 장비와 연동합니다.", "");
+  }
+
+  function fetchPi(path, options) {
+    const url = path.indexOf("http") === 0 ? path : FIXED_PI_BASE + path;
+    const controller = new AbortController();
+    const timer = window.setTimeout(function () {
+      controller.abort();
+    }, PI_FETCH_TIMEOUT_MS);
+
+    return fetch(url, Object.assign({}, options || {}, { signal: controller.signal })).finally(function () {
+      clearTimeout(timer);
+    });
+  }
+
+  async function checkPiHealth() {
+    piPhase = "connecting";
+    piPhaseMessage = "라즈베리파이 연결 확인 중…";
+    updateDispenseUI();
+    drawPhaseScreen(piPhaseMessage);
+
+    const res = await fetchPi(PI_HEALTH_URL, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) {
+      throw new Error("장비 응답 없음 (HTTP " + res.status + ")");
+    }
+    const data = await res.json();
+    if (!data || data.ok !== true) {
+      throw new Error((data && data.message) || "장비 상태 확인 실패");
+    }
+    return data;
+  }
+
+  async function runPiDispense() {
+    piPhase = "dispensing";
+    piPhaseMessage = "알약 배출 중… 모터 작동";
+    updateDispenseUI();
+    drawPhaseScreen(piPhaseMessage);
+
+    const res = await fetchPi(getPiUrl(), {
+      method: "POST",
+      headers: { Accept: "application/json" },
+    });
+    const data = await res.json().catch(function () {
+      return { ok: false, message: "응답 파싱 실패" };
+    });
+    if (!res.ok || !data.ok) {
+      throw new Error((data && data.message) || "배출 명령 실패 (HTTP " + res.status + ")");
+    }
+    piDispenseOk = true;
+    piPhase = "done";
+    piPhaseMessage = "배출 완료 · 카메라 준비";
+    setPiStatus("라즈베리파이 배출 완료", "ok");
+    updateDispenseUI();
+    drawPhaseScreen(piPhaseMessage);
+    return data;
+  }
+
+  /** 카메라 전 — health 확인 후 배출 POST 완료까지 대기 */
+  async function triggerRaspberryPi() {
+    isDispensing = true;
+    piDispenseOk = false;
+    setPiStatus("장비 연결 중…", "");
+
+    try {
+      const health = await checkPiHealth();
+      const gpioNote = health.gpio ? "GPIO 연결됨" : "시뮬레이션 모드";
+      setPiStatus("장비 연결됨 · " + gpioNote, "ok");
+      return await runPiDispense();
+    } catch (error) {
+      piPhase = "error";
+      piPhaseMessage = error && error.name === "AbortError" ? "장비 응답 시간 초과" : (error && error.message) || "연결 실패";
+      setPiStatus(piPhaseMessage, "err");
+      updateDispenseUI();
+      drawPhaseScreen("라즈베리파이 연동 실패\n" + piPhaseMessage);
+      throw error;
+    } finally {
+      isDispensing = false;
+      updateDispenseUI();
+    }
+  }
+
+  function drawPhaseScreen(message) {
+    drawIdleScreen(message);
   }
 
   function savePiUrl(url) {
@@ -351,31 +451,8 @@
     }
   }
 
-  function triggerRaspberryPi() {
-    isDispensing = true;
-    const piUrl = getPiUrl();
-
-    return fetch(piUrl, { method: "POST" })
-      .then(function (response) {
-        return response.json();
-      })
-      .then(function (data) {
-        console.log("배출 신호 전달 성공:", data.message || data);
-        setTimeout(function () {
-          isDispensing = false;
-        }, 5000);
-      })
-      .catch(function (error) {
-        console.error("통신 에러!", error);
-        setTimeout(function () {
-          isDispensing = false;
-        }, 5000);
-        throw error;
-      });
-  }
-
   async function startSystem(slot) {
-    if (isSystemStarted) return;
+    if (isSystemStarted || isDispensing) return;
 
     if (!modelReady || !tmModel) {
       alert("AI 모델이 아직 로드되지 않았습니다.\n잠시 후 다시 시도해 주세요.");
@@ -387,23 +464,34 @@
     confidence = 0;
     lastResults = [];
     intakeHandled = false;
+    piPhase = "idle";
+    piDispenseOk = false;
 
-    console.log(isTestMode() ? "🧪 테스트 모드: 카메라 감시 시작 (기록 없음)" : "🚀 시스템 구동: 모터 작동 신호 송신 및 카메라 On!");
+    console.log(isTestMode() ? "🧪 테스트 모드: 카메라 감시 시작 (기록 없음)" : "🚀 배출 → 카메라 → AI 감시");
     updateDispenseUI();
 
-    if (!isTestMode()) {
-      triggerRaspberryPi().catch(function () {
-        console.warn("라즈베리파이 연결 실패 — 카메라만 계속");
-      });
-    }
-
     try {
+      if (!isTestMode()) {
+        await triggerRaspberryPi();
+      }
+
       await startCamera();
     } catch (e) {
-      console.error("카메라 오류:", e);
+      console.error("시작 오류:", e);
       isSystemStarted = false;
-      alert("카메라를 켤 수 없습니다.\n브라우저에서 카메라 권한을 허용했는지 확인해 주세요.\n(로컬 서버 http://localhost 로 실행 필요)");
-      drawIdleScreen("카메라 오류\n권한 및 http://localhost 실행을 확인하세요.");
+      piPhase = piPhase === "error" ? "error" : "idle";
+
+      if (!isTestMode() && piPhase === "error") {
+        alert(
+          "라즈베리파이와 연동하지 못했습니다.\n" +
+            (piPhaseMessage || "연결을 확인한 뒤 다시 시도해 주세요.") +
+            "\n\n카메라는 배출 성공 후에만 시작됩니다."
+        );
+        drawPhaseScreen("라즈베리파이 연동 실패\n" + (piPhaseMessage || "연결 확인 필요"));
+      } else {
+        alert("카메라를 켤 수 없습니다.\n브라우저에서 카메라 권한을 허용했는지 확인해 주세요.\n(로컬 서버 http://localhost 로 실행 필요)");
+        drawIdleScreen("카메라 오류\n권한 및 http://localhost 실행을 확인하세요.");
+      }
       updateDispenseUI();
     }
   }
@@ -411,6 +499,10 @@
   function stopSystem() {
     isSystemStarted = false;
     intakeHandled = false;
+    isDispensing = false;
+    piPhase = "idle";
+    piPhaseMessage = "";
+    piDispenseOk = false;
     clearSuccessBorder();
     label = "";
     confidence = 0;
@@ -434,6 +526,7 @@
     }
 
     updateDispenseUI();
+    initPiUrlField();
     drawIdleScreen();
   }
 
@@ -454,7 +547,13 @@
     }
 
     if (statusEl) {
-      if (modelLoadError) {
+      if (isDispensing || piPhase === "connecting" || piPhase === "dispensing") {
+        statusEl.textContent = piPhaseMessage || "라즈베리파이 연동 중…";
+        statusEl.dataset.tone = "warn";
+      } else if (piPhase === "error") {
+        statusEl.textContent = "라즈베리파이 연동 실패: " + (piPhaseMessage || "연결 확인 필요");
+        statusEl.dataset.tone = "err";
+      } else if (modelLoadError) {
         statusEl.textContent = modelLoadError;
         statusEl.dataset.tone = "err";
       } else if (!modelReady) {
@@ -500,8 +599,13 @@
       const willTest = slotValue === TEST_SLOT_VALUE;
       const done = isIntakeDetected() && !isTestMode();
       const hasSlot = !!slotValue;
-      startBtn.disabled = !modelReady || !hasSlot || (isSystemStarted && !done && !isTestMode());
-      startBtn.textContent = done
+      startBtn.disabled =
+        !modelReady || !hasSlot || isDispensing || (isSystemStarted && !done && !isTestMode());
+      startBtn.textContent = isDispensing
+        ? piPhase === "connecting"
+          ? "장비 연결 중…"
+          : "알약 배출 중…"
+        : done
         ? "다시 시작"
         : isSystemStarted
           ? isTestMode()
@@ -522,8 +626,10 @@
   function updateSteps() {
     const detected = isIntakeDetected();
     const isTest = isTestMode();
+    const dispenseBusy = isDispensing || piPhase === "connecting" || piPhase === "dispensing";
+    const dispenseDone = piDispenseOk || (isSystemStarted && !isTest && !!videoEl);
     const map = {
-      dispense: isSystemStarted && !isTest,
+      dispense: !isTest && (dispenseBusy || dispenseDone),
       camera: isSystemStarted && !!videoEl,
       detect: detected,
       done: detected && !isTest,
@@ -531,8 +637,15 @@
     Object.keys(map).forEach(function (key) {
       const el = document.getElementById("step-" + key);
       if (el) {
-        el.classList.toggle("dispense-step--active", !!map[key] && !(key === "done" && isTest));
-        el.classList.toggle("dispense-step--done", !!map[key]);
+        const active =
+          key === "dispense"
+            ? dispenseBusy
+            : key === "camera"
+              ? isSystemStarted && !!videoEl && !dispenseBusy
+              : !!map[key] && !(key === "done" && isTest);
+        const done = key === "dispense" ? dispenseDone && !dispenseBusy : !!map[key];
+        el.classList.toggle("dispense-step--active", active);
+        el.classList.toggle("dispense-step--done", done);
       }
     });
   }
@@ -542,19 +655,7 @@
 
     ensureCanvas();
     drawIdleScreen();
-
-    const piInput = document.getElementById("dispense-pi-url");
-    if (piInput) {
-      try {
-        piInput.value = localStorage.getItem(PI_URL_STORAGE_KEY) || DEFAULT_PI_URL;
-      } catch (e) {
-        piInput.value = DEFAULT_PI_URL;
-      }
-      piInput.addEventListener("change", function () {
-        const url = piInput.value.trim();
-        if (url) savePiUrl(url);
-      });
-    }
+    initPiUrlField();
 
     const startBtn = document.getElementById("btn-dispense-start");
     const stopBtn = document.getElementById("btn-dispense-stop");
