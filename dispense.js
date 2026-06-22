@@ -12,9 +12,7 @@
   const CONFIDENCE_THRESHOLD = 0.9;
   const PREDICT_INTERVAL_MS = 200;
   const PI_URL_STORAGE_KEY = "dispensePiUrl";
-  const FIXED_PI_BASE = "https://d0a10f1c3d4b3c.lhr.life";
-  const DEFAULT_PI_URL = FIXED_PI_BASE + "/dispense";
-  const PI_HEALTH_URL = FIXED_PI_BASE + "/health";
+  const FIXED_PI_URL = "https://d0a10f1c3d4b3c.lhr.life";
   const PI_FETCH_TIMEOUT_MS = 12000;
   const TEST_SLOT_VALUE = "__test__|test";
 
@@ -77,7 +75,7 @@
   }
 
   function getPiUrl() {
-    return DEFAULT_PI_URL;
+    return FIXED_PI_URL;
   }
 
   function setPiStatus(text, tone) {
@@ -90,21 +88,20 @@
   function initPiUrlField() {
     const piInput = document.getElementById("dispense-pi-url");
     if (piInput) {
-      piInput.value = DEFAULT_PI_URL;
+      piInput.value = FIXED_PI_URL;
       piInput.readOnly = true;
     }
-    savePiUrl(DEFAULT_PI_URL);
+    savePiUrl(FIXED_PI_URL);
     setPiStatus("배출 단계에서 장비와 연동합니다.", "");
   }
 
-  function fetchPi(path, options) {
-    const url = path.indexOf("http") === 0 ? path : FIXED_PI_BASE + path;
+  function fetchPi(options) {
     const controller = new AbortController();
     const timer = window.setTimeout(function () {
       controller.abort();
     }, PI_FETCH_TIMEOUT_MS);
 
-    return fetch(url, Object.assign({}, options || {}, { signal: controller.signal })).finally(function () {
+    return fetch(FIXED_PI_URL, Object.assign({}, options || {}, { signal: controller.signal })).finally(function () {
       clearTimeout(timer);
     });
   }
@@ -115,7 +112,7 @@
     updateDispenseUI();
     drawPhaseScreen(piPhaseMessage);
 
-    const res = await fetchPi(PI_HEALTH_URL, {
+    const res = await fetchPi({
       method: "GET",
       headers: { Accept: "application/json" },
     });
@@ -135,7 +132,7 @@
     updateDispenseUI();
     drawPhaseScreen(piPhaseMessage);
 
-    const res = await fetchPi(getPiUrl(), {
+    const res = await fetchPi({
       method: "POST",
       headers: { Accept: "application/json" },
     });

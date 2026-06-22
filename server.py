@@ -11,10 +11,11 @@ GPIO로 스텝 모터 또는 DC 모터를 제어합니다.
 
 터널 (외부 접속):
   ssh -R 80:localhost:5000 nokey@localhost.run
-  → 발급된 URL을 웹앱에 사용 (예: https://d0a10f1c3d4b3c.lhr.life/dispense)
+  → 발급된 URL을 웹앱에 사용 (예: https://d0a10f1c3d4b3c.lhr.life)
+  GET = 상태 확인 · POST = 알약 배출
 """
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 import time
 
@@ -44,6 +45,17 @@ def run_motor():
     else:
         print(f"[SIM] 모터 {DISPENSE_DURATION}초 작동")
         time.sleep(DISPENSE_DURATION)
+
+
+@app.route("/", methods=["GET", "POST"])
+def root():
+    if request.method == "GET":
+        return jsonify({"ok": True, "gpio": USE_GPIO})
+    try:
+        run_motor()
+        return jsonify({"ok": True, "message": "알약 배출 완료"})
+    except Exception as e:
+        return jsonify({"ok": False, "message": str(e)}), 500
 
 
 @app.route("/dispense", methods=["POST", "GET"])
