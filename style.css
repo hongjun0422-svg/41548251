@@ -119,10 +119,15 @@ html[data-theme="dark"] .view-tab--active { background: rgba(255,255,255,.08); b
 .panel__desc { margin: 2px 0 0; font-size: .72rem; color: var(--muted); }
 .panel__body { padding: 0 12px 10px; overflow-y: auto; min-height: 0; flex: 1; }
 .panel--notify .panel__body { overflow: visible; }
-.panel--ai { height: 100%; }
+.panel--ai { min-height: 0; }
+.panel--ai.panel--grow { flex: 1; }
 .panel--ai .panel__head { padding-bottom: 4px; }
 
-#today-summary { padding: 12px 14px; flex-shrink: 0; }
+.panel--ai-footer { flex-shrink: 0; padding: 10px 16px; }
+.panel--ai-footer .today-summary__inner { justify-content: center; gap: 20px; }
+.panel--ai-footer .today-summary__progress { width: 48px; height: 48px; }
+.panel--ai-footer .today-summary__stat { font-size: .95rem; }
+
 .today-summary__inner { display: flex; align-items: center; gap: 14px; }
 .today-summary__progress {
   --pct: 0; width: 56px; height: 56px; border-radius: 50%;

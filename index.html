@@ -58,8 +58,6 @@
         <!-- 복용 관리 탭 -->
         <div id="view-home" class="dash-view dash-view--home dash-view--active" role="tabpanel" aria-labelledby="tab-home">
           <aside class="dash-col dash-col--left">
-            <section class="panel card" id="today-summary" aria-live="polite"></section>
-
             <section class="panel card panel--grow">
               <div class="panel__head">
                 <h2 class="panel__title">오늘의 복용</h2>
@@ -129,7 +127,7 @@
         <!-- AI 복용 탭 -->
         <div id="view-ai" class="dash-view dash-view--ai" role="tabpanel" aria-labelledby="tab-ai" hidden>
           <main class="dash-col dash-col--ai">
-            <section class="panel card panel--ai" aria-labelledby="dispense-title">
+            <section class="panel card panel--ai panel--grow" aria-labelledby="dispense-title">
               <div class="panel__head">
                 <h2 id="dispense-title" class="panel__title">AI 복용 확인</h2>
                 <p class="panel__desc">배출 → 카메라 → 꿀꺽 감지 → 기록</p>
@@ -168,6 +166,8 @@
                 </div>
               </div>
             </section>
+
+            <section class="panel card panel--ai-footer" id="today-summary" aria-live="polite"></section>
           </main>
         </div>
       </div>
