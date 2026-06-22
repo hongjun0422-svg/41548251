@@ -416,13 +416,12 @@ function renderDailySummary() {
   listEl.innerHTML = slots
     .map(({ vitamin: v, time }) => {
       const taken = isSlotTaken(key, v.id, time);
-      const overdue = isSlotOverdue(key, v.id, time);
       const slotValue = `${v.id}|${time}`;
-      const rowClass = taken ? "slot-row--ok" : overdue ? "slot-row--miss" : "slot-row--pending";
+      const rowClass = taken ? "slot-row--ok" : "slot-row--miss";
       const selectedClass = slotValue === selectedValue ? " slot-row--selected" : "";
       const statusHtml = taken
         ? `<span class="slot-status slot-status--done">완료</span>`
-        : `<span class="slot-status slot-status--wait">AI 인증 필요</span>`;
+        : `<span class="slot-status slot-status--miss">AI 인증 필요</span>`;
       const tag = taken ? "div" : "button";
       const attrs = taken
         ? ""
