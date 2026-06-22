@@ -411,22 +411,31 @@ function renderDailySummary() {
     return;
   }
 
+  const selectedValue = document.getElementById("dispense-slot")?.value || "";
+
   listEl.innerHTML = slots
     .map(({ vitamin: v, time }) => {
       const taken = isSlotTaken(key, v.id, time);
       const overdue = isSlotOverdue(key, v.id, time);
+      const slotValue = `${v.id}|${time}`;
       const rowClass = taken ? "slot-row--ok" : overdue ? "slot-row--miss" : "slot-row--pending";
+      const selectedClass = slotValue === selectedValue ? " slot-row--selected" : "";
       const statusHtml = taken
         ? `<span class="slot-status slot-status--done">완료</span>`
         : `<span class="slot-status slot-status--wait">AI 인증 필요</span>`;
-      return `<div class="slot-row ${rowClass}">
+      const tag = taken ? "div" : "button";
+      const attrs = taken
+        ? ""
+        : ` type="button" data-dispense-slot data-vitamin-id="${escapeHtml(v.id)}" data-time="${escapeHtml(time)}" data-taken="false"`;
+      const clickableClass = taken ? "" : " slot-row--clickable";
+      return `<${tag} class="slot-row ${rowClass}${clickableClass}${selectedClass}"${attrs}>
         <div class="slot-row__info">
           <span class="slot-row__time">${escapeHtml(time)}</span>
           <span class="slot-row__name">${escapeHtml(v.name)}</span>
           <span class="slot-row__dose">${escapeHtml(v.dosage)}</span>
         </div>
         ${statusHtml}
-      </div>`;
+      </${tag}>`;
     })
     .join("");
 
@@ -561,33 +570,7 @@ function goToday() {
 }
 
 function renderDispenseSlots() {
-  const select = document.getElementById("dispense-slot");
-  if (!select) return;
-
-  const key = toDateKey(new Date());
-  const TEST_VALUE = "__test__|test";
-  const options = getAllSlots(key).map(({ vitamin: v, time }) => {
-    const taken = isSlotTaken(key, v.id, time);
-    return {
-      value: `${v.id}|${time}`,
-      label: `${v.name} · ${time}${taken ? " (완료)" : ""}`,
-      disabled: taken,
-    };
-  });
-
-  const testOption = `<option value="${TEST_VALUE}">🧪 테스트 (기록 없음 · AI 확인용)</option>`;
-
-  select.innerHTML =
-    `<option value="">복용할 항목을 선택하세요</option>` +
-    testOption +
-    (options.length
-      ? options
-          .map(
-            (o) =>
-              `<option value="${escapeHtml(o.value)}"${o.disabled ? " disabled" : ""}>${escapeHtml(o.label)}</option>`
-          )
-          .join("")
-      : `<option value="" disabled>오늘 등록된 복용 항목 없음</option>`);
+  updateDispenseSlotDisplay();
 }
 
 function setupDispenseSystem() {
@@ -598,6 +581,9 @@ function setupDispenseSystem() {
       if (isTest) return;
       const key = toDateKey(new Date());
       setSlotTaken(key, vitaminId, time, true);
+      const input = document.getElementById("dispense-slot");
+      if (input) input.value = "";
+      updateDispenseSlotDisplay();
       renderDailySummary();
       renderCalendar();
       renderDispenseSlots();
@@ -960,6 +946,66 @@ function setupNotifySettings() {
 }
 
 const VIEW_TAB_KEY = "appViewTab";
+const TEST_SLOT_VALUE = "__test__|test";
+/** @type {((name: string) => void) | null} */
+let switchAppView = null;
+
+function updateDispenseSlotDisplay() {
+  const input = document.getElementById("dispense-slot");
+  const display = document.getElementById("dispense-slot-display");
+  if (!input || !display) return;
+
+  const value = input.value;
+  if (!value || value === TEST_SLOT_VALUE) {
+    if (value === TEST_SLOT_VALUE) {
+      display.innerHTML = `<div class="dispense-selected__card dispense-selected__card--test">
+        <p class="dispense-selected__label">테스트 모드</p>
+        <p class="dispense-selected__name">AI 확인용 (기록 없음)</p>
+      </div>`;
+    } else {
+      display.innerHTML = `<p class="dispense-selected__empty">「오늘의 복용」에서 항목을 선택하세요.</p>`;
+    }
+    return;
+  }
+
+  const [vitaminId, time] = value.split("|");
+  const v = VITAMINS.find((x) => x.id === vitaminId);
+  display.innerHTML = `<div class="dispense-selected__card">
+    <p class="dispense-selected__label">선택된 복용</p>
+    <p class="dispense-selected__name">${escapeHtml(v ? v.name : "영양제")}</p>
+    <p class="dispense-selected__meta">${escapeHtml(time || "")} · ${escapeHtml(v ? v.dosage : "")}</p>
+  </div>`;
+}
+
+function setDispenseSlot(vitaminId, time) {
+  const input = document.getElementById("dispense-slot");
+  if (!input) return;
+  input.value = `${vitaminId}|${time}`;
+  updateDispenseSlotDisplay();
+  renderDailySummary();
+  input.dispatchEvent(new Event("change", { bubbles: true }));
+}
+
+function openDispenseForSlot(vitaminId, time) {
+  const key = toDateKey(new Date());
+  if (isSlotTaken(key, vitaminId, time)) return;
+  setDispenseSlot(vitaminId, time);
+  if (switchAppView) switchAppView("ai");
+}
+
+function setupDailyListActions() {
+  const listEl = document.getElementById("daily-list");
+  if (!listEl) return;
+
+  listEl.addEventListener("click", (e) => {
+    const row = e.target.closest("[data-dispense-slot]");
+    if (!row || row.dataset.taken === "true") return;
+    const vitaminId = row.getAttribute("data-vitamin-id");
+    const time = row.getAttribute("data-time");
+    if (!vitaminId || !time) return;
+    openDispenseForSlot(vitaminId, time);
+  });
+}
 
 function setupViewTabs() {
   const tabs = document.querySelectorAll(".view-tab");
@@ -995,6 +1041,8 @@ function setupViewTabs() {
     if (view === "home") renderCalendar();
   }
 
+  switchAppView = setView;
+
   tabs.forEach((btn) => {
     btn.addEventListener("click", () => setView(btn.getAttribute("data-view")));
   });
@@ -1011,6 +1059,7 @@ function setupViewTabs() {
 purgeFutureIntakeLogs();
 setupThemeToggle();
 setupViewTabs();
+setupDailyListActions();
 loadVitamins();
 loadSlotLog();
 loadNotifySettings();

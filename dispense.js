@@ -424,10 +424,12 @@
     }
 
     if (startBtn) {
-      const selectEl = document.getElementById("dispense-slot");
-      const willTest = selectEl && selectEl.value === TEST_SLOT_VALUE;
+      const slotInput = document.getElementById("dispense-slot");
+      const slotValue = slotInput && slotInput.value;
+      const willTest = slotValue === TEST_SLOT_VALUE;
       const done = isIntakeDetected() && !isTestMode();
-      startBtn.disabled = !modelReady || (isSystemStarted && !done && !isTestMode());
+      const hasSlot = !!slotValue;
+      startBtn.disabled = !modelReady || !hasSlot || (isSystemStarted && !done && !isTestMode());
       startBtn.textContent = done
         ? "다시 시작"
         : isSystemStarted
@@ -492,12 +494,12 @@
           stopSystem();
           return;
         }
-        const select = document.getElementById("dispense-slot");
-        const value = select && select.value;
+        const slotInput = document.getElementById("dispense-slot");
+        const value = slotInput && slotInput.value;
         if (!value) {
           const el = document.getElementById("dispense-status");
           if (el) {
-            el.textContent = "복용할 항목을 선택해 주세요.";
+            el.textContent = "「오늘의 복용」에서 항목을 선택해 주세요.";
             el.dataset.tone = "err";
           }
           return;
@@ -515,9 +517,19 @@
       stopBtn.addEventListener("click", stopSystem);
     }
 
-    const slotSelectEl = document.getElementById("dispense-slot");
-    if (slotSelectEl) {
-      slotSelectEl.addEventListener("change", updateDispenseUI);
+    const slotInputEl = document.getElementById("dispense-slot");
+    if (slotInputEl) {
+      slotInputEl.addEventListener("change", updateDispenseUI);
+    }
+
+    const testBtn = document.getElementById("btn-dispense-test");
+    if (testBtn) {
+      testBtn.addEventListener("click", function () {
+        if (isSystemStarted) return;
+        if (slotInputEl) slotInputEl.value = TEST_SLOT_VALUE;
+        if (typeof updateDispenseSlotDisplay === "function") updateDispenseSlotDisplay();
+        updateDispenseUI();
+      });
     }
 
     loadModel();

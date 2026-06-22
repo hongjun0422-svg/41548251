@@ -63,7 +63,7 @@
             <section class="panel card panel--grow">
               <div class="panel__head">
                 <h2 class="panel__title">오늘의 복용</h2>
-                <p class="panel__desc">AI 인증 후 자동 기록</p>
+                <p class="panel__desc">항목을 선택하면 AI 복용으로 이동</p>
               </div>
               <div id="daily-list" class="daily-list daily-list--flat panel__body"></div>
             </section>
@@ -137,17 +137,18 @@
 
               <div class="ai-layout ai-layout--tab">
                 <div class="ai-layout__controls">
-                  <label class="field">
-                    <span class="field__label">복용 항목</span>
-                    <select id="dispense-slot" class="field__control"></select>
-                  </label>
+                  <input type="hidden" id="dispense-slot" value="" />
+                  <div id="dispense-slot-display" class="dispense-selected" aria-live="polite">
+                    <p class="dispense-selected__empty">「오늘의 복용」에서 항목을 선택하세요.</p>
+                  </div>
                   <label class="field">
                     <span class="field__label">라즈베리파이</span>
                     <input id="dispense-pi-url" class="field__control" type="url" placeholder="https://xxxx.lhr.life/dispense" />
                   </label>
                   <div class="dispense__actions">
-                    <button type="button" id="btn-dispense-start" class="btn btn-primary btn-block">시작</button>
+                    <button type="button" id="btn-dispense-start" class="btn btn-primary btn-block" disabled>시작</button>
                     <button type="button" id="btn-dispense-stop" class="btn btn-ghost btn-block" hidden>중지</button>
+                    <button type="button" id="btn-dispense-test" class="btn btn-ghost btn-sm btn-block">🧪 AI 테스트 (기록 없음)</button>
                   </div>
                   <ol class="dispense__steps dispense__steps--compact">
                     <li id="step-dispense" class="dispense-step">① 배출</li>
