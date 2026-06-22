@@ -12,7 +12,7 @@
   const CONFIDENCE_THRESHOLD = 0.9;
   const PREDICT_INTERVAL_MS = 200;
   const PI_URL_STORAGE_KEY = "dispensePiUrl";
-  const FIXED_PI_URL = "https://b28756feedf841.lhr.life";
+  const FIXED_PI_URL = "https://52a123b31bd01d.lhr.life";
   const PI_FETCH_TIMEOUT_MS = 12000;
   const TEST_SLOT_VALUE = "__test__|test";
 
