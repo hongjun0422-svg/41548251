@@ -135,25 +135,29 @@
 
               <div class="ai-layout ai-layout--tab">
                 <div class="ai-layout__controls">
-                  <input type="hidden" id="dispense-slot" value="" />
-                  <div id="dispense-slot-display" class="dispense-selected" aria-live="polite">
-                    <p class="dispense-selected__empty">「오늘의 복용」에서 항목을 선택하세요.</p>
+                  <div class="ai-layout__controls-main">
+                    <input type="hidden" id="dispense-slot" value="" />
+                    <div id="dispense-slot-display" class="dispense-selected" aria-live="polite">
+                      <p class="dispense-selected__empty">「오늘의 복용」에서 항목을 선택하세요.</p>
+                    </div>
+                    <label class="field">
+                      <span class="field__label">라즈베리파이</span>
+                      <input id="dispense-pi-url" class="field__control" type="url" placeholder="https://xxxx.lhr.life/dispense" />
+                    </label>
+                    <div class="dispense__actions">
+                      <button type="button" id="btn-dispense-start" class="btn btn-primary btn-block" disabled>시작</button>
+                      <button type="button" id="btn-dispense-stop" class="btn btn-ghost btn-block" hidden>중지</button>
+                      <button type="button" id="btn-dispense-test" class="btn btn-ghost btn-sm btn-block">🧪 AI 테스트 (기록 없음)</button>
+                    </div>
+                    <ol class="dispense__steps dispense__steps--compact">
+                      <li id="step-dispense" class="dispense-step">① 배출</li>
+                      <li id="step-camera" class="dispense-step">② 카메라</li>
+                      <li id="step-detect" class="dispense-step">③ AI</li>
+                      <li id="step-done" class="dispense-step">④ 저장</li>
+                    </ol>
                   </div>
-                  <label class="field">
-                    <span class="field__label">라즈베리파이</span>
-                    <input id="dispense-pi-url" class="field__control" type="url" placeholder="https://xxxx.lhr.life/dispense" />
-                  </label>
-                  <div class="dispense__actions">
-                    <button type="button" id="btn-dispense-start" class="btn btn-primary btn-block" disabled>시작</button>
-                    <button type="button" id="btn-dispense-stop" class="btn btn-ghost btn-block" hidden>중지</button>
-                    <button type="button" id="btn-dispense-test" class="btn btn-ghost btn-sm btn-block">🧪 AI 테스트 (기록 없음)</button>
-                  </div>
-                  <ol class="dispense__steps dispense__steps--compact">
-                    <li id="step-dispense" class="dispense-step">① 배출</li>
-                    <li id="step-camera" class="dispense-step">② 카메라</li>
-                    <li id="step-detect" class="dispense-step">③ AI</li>
-                    <li id="step-done" class="dispense-step">④ 저장</li>
-                  </ol>
+
+                  <section class="ai-summary-slot" id="today-summary" aria-live="polite"></section>
                 </div>
 
                 <div class="ai-layout__stage">
@@ -166,8 +170,6 @@
                 </div>
               </div>
             </section>
-
-            <section class="panel card panel--ai-footer" id="today-summary" aria-live="polite"></section>
           </main>
         </div>
       </div>
