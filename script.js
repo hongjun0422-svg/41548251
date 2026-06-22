@@ -959,8 +959,58 @@ function setupNotifySettings() {
   updateStatus();
 }
 
+const VIEW_TAB_KEY = "appViewTab";
+
+function setupViewTabs() {
+  const tabs = document.querySelectorAll(".view-tab");
+  const views = {
+    home: document.getElementById("view-home"),
+    ai: document.getElementById("view-ai"),
+  };
+  const sub = document.getElementById("dash-header-sub");
+  const SUBS = {
+    home: "오늘 복용 · 캘린더 · 영양제 등록",
+    ai: "AI 복용 인증 완료 시에만 기록됩니다 · 배출 → 카메라 → 꿀꺽 감지",
+  };
+
+  function setView(name) {
+    const view = name === "ai" ? "ai" : "home";
+    Object.entries(views).forEach(([key, el]) => {
+      if (!el) return;
+      const active = key === view;
+      el.hidden = !active;
+      el.classList.toggle("dash-view--active", active);
+    });
+    tabs.forEach((btn) => {
+      const active = btn.getAttribute("data-view") === view;
+      btn.classList.toggle("view-tab--active", active);
+      btn.setAttribute("aria-selected", active ? "true" : "false");
+    });
+    if (sub) sub.textContent = SUBS[view];
+    try {
+      localStorage.setItem(VIEW_TAB_KEY, view);
+    } catch {
+      // ignore
+    }
+    if (view === "home") renderCalendar();
+  }
+
+  tabs.forEach((btn) => {
+    btn.addEventListener("click", () => setView(btn.getAttribute("data-view")));
+  });
+
+  let saved = "home";
+  try {
+    saved = localStorage.getItem(VIEW_TAB_KEY) || "home";
+  } catch {
+    // ignore
+  }
+  setView(saved === "ai" ? "ai" : "home");
+}
+
 purgeFutureIntakeLogs();
 setupThemeToggle();
+setupViewTabs();
 loadVitamins();
 loadSlotLog();
 loadNotifySettings();
