@@ -11,7 +11,7 @@ GPIO로 스텝 모터 또는 DC 모터를 제어합니다.
 
 터널 (외부 접속):
   ssh -R 80:localhost:5000 nokey@localhost.run
-  → 발급된 URL을 웹앱에 사용 (예: https://c6d0f55b35d093.lhr.life)
+  → 발급된 URL을 웹앱에 사용 (예: https://1b0a6086a9490a.lhr.life)
   GET = 상태 확인 · POST = 알약 배출
 """
 
