@@ -422,19 +422,18 @@ function renderDailySummary() {
       const statusHtml = taken
         ? `<span class="slot-status slot-status--done">완료</span>`
         : `<span class="slot-status slot-status--miss">AI 인증 필요</span>`;
-      const tag = taken ? "div" : "button";
-      const attrs = taken
-        ? ""
-        : ` type="button" data-dispense-slot data-vitamin-id="${escapeHtml(v.id)}" data-time="${escapeHtml(time)}" data-taken="false"`;
-      const clickableClass = taken ? "" : " slot-row--clickable";
-      return `<${tag} class="slot-row ${rowClass}${clickableClass}${selectedClass}"${attrs}>
+      const clickableClass = taken ? " slot-row--clickable slot-row--undo" : " slot-row--clickable";
+      const takenAttr = taken ? "true" : "false";
+      return `<button type="button" class="slot-row ${rowClass}${clickableClass}${selectedClass}"
+        data-daily-slot data-vitamin-id="${escapeHtml(v.id)}" data-time="${escapeHtml(time)}" data-taken="${takenAttr}"
+        aria-label="${escapeHtml(v.name)} ${escapeHtml(time)} ${taken ? "완료, 기록 삭제" : "AI 복용"}">
         <div class="slot-row__info">
           <span class="slot-row__time">${escapeHtml(time)}</span>
           <span class="slot-row__name">${escapeHtml(v.name)}</span>
           <span class="slot-row__dose">${escapeHtml(v.dosage)}</span>
         </div>
         ${statusHtml}
-      </${tag}>`;
+      </button>`;
     })
     .join("");
 
@@ -758,6 +757,82 @@ function enqueueToast(title, body, tone) {
   showToast(title, body, tone);
 }
 
+/** @returns {Promise<boolean>} */
+function showConfirm(message, title) {
+  return new Promise(function (resolve) {
+    const root = document.getElementById("confirm-root");
+    const titleEl = document.getElementById("confirm-title");
+    const msgEl = document.getElementById("confirm-message");
+    const yesBtn = document.getElementById("confirm-yes");
+    const noBtn = document.getElementById("confirm-no");
+    if (!root || !titleEl || !msgEl || !yesBtn || !noBtn) {
+      resolve(false);
+      return;
+    }
+
+    titleEl.textContent = title || "복용 기록 삭제";
+    msgEl.textContent = message;
+
+    function close(result) {
+      root.hidden = true;
+      root.setAttribute("aria-hidden", "true");
+      yesBtn.removeEventListener("click", onYes);
+      noBtn.removeEventListener("click", onNo);
+      root.removeEventListener("click", onBackdrop);
+      document.removeEventListener("keydown", onKey);
+      resolve(result);
+    }
+
+    function onYes() {
+      close(true);
+    }
+    function onNo() {
+      close(false);
+    }
+    function onBackdrop(e) {
+      if (e.target.matches("[data-confirm-dismiss]")) onNo();
+    }
+    function onKey(e) {
+      if (e.key === "Escape") onNo();
+    }
+
+    yesBtn.addEventListener("click", onYes);
+    noBtn.addEventListener("click", onNo);
+    root.addEventListener("click", onBackdrop);
+    document.addEventListener("keydown", onKey);
+
+    root.hidden = false;
+    root.setAttribute("aria-hidden", "false");
+    noBtn.focus();
+  });
+}
+
+function clearSlotRecord(vitaminId, time) {
+  const key = toDateKey(new Date());
+  setSlotTaken(key, vitaminId, time, false);
+
+  const input = document.getElementById("dispense-slot");
+  if (input && input.value === `${vitaminId}|${time}`) {
+    input.value = "";
+    updateDispenseSlotDisplay();
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  }
+
+  renderDailySummary();
+  renderCalendar();
+  renderDispenseSlots();
+
+  const v = VITAMINS.find((x) => x.id === vitaminId);
+  enqueueToast("기록 삭제", `${v ? v.name : "영양제"}(${time}) 복용 기록을 삭제했습니다.`, "ok");
+}
+
+async function confirmClearSlot(vitaminId, time) {
+  const v = VITAMINS.find((x) => x.id === vitaminId);
+  const name = v ? v.name : "영양제";
+  const ok = await showConfirm(`${name} · ${time}\n복용 기록을 삭제할까요?`, "복용 기록 삭제");
+  if (ok) clearSlotRecord(vitaminId, time);
+}
+
 function showBrowserNotification(title, body, tag) {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
   try {
@@ -1007,11 +1082,16 @@ function setupDailyListActions() {
   if (!listEl) return;
 
   listEl.addEventListener("click", (e) => {
-    const row = e.target.closest("[data-dispense-slot]");
-    if (!row || row.dataset.taken === "true") return;
+    const row = e.target.closest("[data-daily-slot]");
+    if (!row) return;
     const vitaminId = row.getAttribute("data-vitamin-id");
     const time = row.getAttribute("data-time");
     if (!vitaminId || !time) return;
+
+    if (row.getAttribute("data-taken") === "true") {
+      confirmClearSlot(vitaminId, time);
+      return;
+    }
     openDispenseForSlot(vitaminId, time);
   });
 }

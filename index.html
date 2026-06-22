@@ -62,7 +62,7 @@
             <section class="panel card panel--grow">
               <div class="panel__head">
                 <h2 class="panel__title">오늘의 복용</h2>
-                <p class="panel__desc">항목을 선택하면 AI 복용으로 이동</p>
+                <p class="panel__desc">미복용 선택 → AI 복용 · 완료 선택 → 기록 삭제</p>
               </div>
               <div id="daily-list" class="daily-list daily-list--flat panel__body"></div>
             </section>
@@ -195,6 +195,18 @@
               </div>
             </section>
           </main>
+        </div>
+      </div>
+    </div>
+
+    <div id="confirm-root" class="confirm-root" hidden aria-hidden="true">
+      <div class="confirm-backdrop" data-confirm-dismiss></div>
+      <div class="confirm-box" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+        <p id="confirm-title" class="confirm-box__title">복용 기록 삭제</p>
+        <p id="confirm-message" class="confirm-box__body"></p>
+        <div class="confirm-box__actions">
+          <button type="button" id="confirm-no" class="btn btn-ghost btn-sm">아니요</button>
+          <button type="button" id="confirm-yes" class="btn btn-primary btn-sm">예</button>
         </div>
       </div>
     </div>
