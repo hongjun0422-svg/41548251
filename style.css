@@ -335,8 +335,131 @@ html[data-theme="dark"] .theme-ico--moon {
   display: flex;
 }
 
+.views.tab-home .view-panel--home {
+  display: flex;
+}
+
 .views.tab-dispense .view-panel--dispense {
   display: flex;
+}
+
+/* 1인용 홈 */
+.view-panel--home {
+  flex-direction: column;
+  gap: 12px;
+}
+
+.today-summary {
+  padding: 16px 18px;
+}
+
+.today-summary__inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.today-summary__progress {
+  --pct: 0;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent) calc(var(--pct) * 1%), rgba(148, 163, 184, 0.2) 0);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.today-summary__progress::after {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  background: var(--paper);
+}
+
+.today-summary__pct {
+  position: relative;
+  z-index: 1;
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: var(--accent);
+}
+
+.today-summary__label {
+  margin: 0 0 4px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.today-summary__stat {
+  margin: 0 0 4px;
+  font-size: 1.25rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+.today-summary__status {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.today-summary__inner--ok .today-summary__status { color: var(--ok); }
+.today-summary__inner--miss .today-summary__status { color: var(--miss); }
+
+.daily-list--flat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cell-users--solo {
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+}
+
+.cell-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.cell-status--ok {
+  background: var(--ok-bg);
+  border-color: rgba(5, 150, 105, 0.3);
+  color: var(--ok);
+}
+
+.cell-status--miss {
+  background: var(--miss-bg);
+  border-color: rgba(225, 29, 72, 0.28);
+  color: var(--miss);
+}
+
+.cell-status--none {
+  color: var(--none);
+}
+
+html[data-theme="dark"] .today-summary__progress::after {
+  background: rgba(15, 23, 42, 0.9);
+}
+
+html[data-theme="dark"] .cell-status {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(148, 163, 184, 0.18);
 }
 
 .view-panel[hidden] {
