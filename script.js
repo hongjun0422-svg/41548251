@@ -822,24 +822,82 @@ function goToday() {
   renderCalendar();
 }
 
+function renderDispenseSlots() {
+  const select = document.getElementById("dispense-slot");
+  if (!select) return;
+
+  const key = toDateKey(new Date());
+  const options = [];
+
+  MEMBERS.forEach((m) => {
+    getMemberSlots(key, m.id).forEach(({ vitamin: v, time }) => {
+      const taken = isSlotTaken(key, v.id, time);
+      const suffix = taken ? " (완료)" : "";
+      options.push({
+        value: `${v.id}|${time}`,
+        label: `${m.name} · ${v.name} · ${time}${suffix}`,
+        disabled: taken,
+      });
+    });
+  });
+
+  if (options.length === 0) {
+    select.innerHTML = `<option value="">오늘 복용 항목이 없습니다</option>`;
+    return;
+  }
+
+  select.innerHTML =
+    `<option value="">복용할 항목을 선택하세요</option>` +
+    options
+      .map(
+        (o) =>
+          `<option value="${escapeHtml(o.value)}"${o.disabled ? " disabled" : ""}>${escapeHtml(o.label)}</option>`
+      )
+      .join("");
+}
+
+function setupDispenseSystem() {
+  if (typeof window.DispenseSystem === "undefined") return;
+
+  window.DispenseSystem.init({
+    onComplete({ vitaminId, time }) {
+      const key = toDateKey(new Date());
+      setSlotTaken(key, vitaminId, time, true);
+      MEMBERS.forEach((m) => syncMemberIntakeFromSlots(key, m.id));
+      renderDailySummary();
+      renderCalendar();
+      renderDispenseSlots();
+
+      const v = VITAMINS.find((x) => x.id === vitaminId);
+      const name = v ? v.name : "비타민";
+      notifyUser("복용 완료", `${name}(${time}) AI가 복용을 확인했습니다.`, `dispense|${key}|${vitaminId}|${time}`, "intake");
+    },
+  });
+
+  renderDispenseSlots();
+}
+
 function setupViewTabs() {
   const views = document.getElementById("views");
   const tabCal = document.getElementById("tab-calendar");
   const tabCheck = document.getElementById("tab-check");
+  const tabDispense = document.getElementById("tab-dispense");
   const tabManage = document.getElementById("tab-manage");
   const panelCal = document.getElementById("panel-calendar");
   const panelCheck = document.getElementById("panel-check");
+  const panelDispense = document.getElementById("panel-dispense");
   const panelManage = document.getElementById("panel-manage");
   if (!views || !tabCal || !tabCheck || !tabManage) return;
 
   const tabs = [
     { key: "calendar", tab: tabCal, panel: panelCal },
     { key: "check", tab: tabCheck, panel: panelCheck },
+    ...(tabDispense && panelDispense ? [{ key: "dispense", tab: tabDispense, panel: panelDispense }] : []),
     { key: "manage", tab: tabManage, panel: panelManage },
   ];
 
   function activate(which) {
-    views.classList.remove("tab-calendar", "tab-check", "tab-manage");
+    views.classList.remove("tab-calendar", "tab-check", "tab-dispense", "tab-manage");
     views.classList.add(`tab-${which}`);
     tabs.forEach(({ key, tab, panel }) => {
       const on = key === which;
@@ -850,10 +908,12 @@ function setupViewTabs() {
         else panel.setAttribute("hidden", "");
       }
     });
+    if (which === "dispense") renderDispenseSlots();
   }
 
   tabCal.addEventListener("click", () => activate("calendar"));
   tabCheck.addEventListener("click", () => activate("check"));
+  if (tabDispense) tabDispense.addEventListener("click", () => activate("dispense"));
   tabManage.addEventListener("click", () => activate("manage"));
   activate("calendar");
 }
@@ -1326,6 +1386,7 @@ renderWeekdays();
 renderCalendar();
 renderDailySummary();
 setupViewTabs();
+setupDispenseSystem();
 renderManage();
 setupVitaminForm();
 setupNotifySettings();

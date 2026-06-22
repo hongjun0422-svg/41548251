@@ -92,6 +92,21 @@
           <button
             type="button"
             class="view-tab"
+            id="tab-dispense"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-dispense"
+            data-view="dispense"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 2a3 3 0 0 1 3 3v2h2a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2V5a3 3 0 0 1 3-3Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+              <path d="M9 14l2 2 4-4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            스마트 복용
+          </button>
+          <button
+            type="button"
+            class="view-tab"
             id="tab-manage"
             role="tab"
             aria-selected="false"
@@ -272,6 +287,66 @@
           </footer>
         </section>
 
+        <!-- 스마트 복용: 모터 배출 + AI 카메라 감시 -->
+        <section
+          class="view-panel view-panel--dispense"
+          id="panel-dispense"
+          role="tabpanel"
+          aria-labelledby="tab-dispense"
+          hidden
+        >
+          <section class="dispense card" aria-labelledby="dispense-title">
+            <div class="manage__head">
+              <h2 id="dispense-title" class="manage__title">스마트 복용</h2>
+              <p class="manage__desc">
+                버튼을 누르면 알약이 배출되고, 카메라가 복용(꿀꺽)을 감지합니다.
+              </p>
+            </div>
+
+            <div class="dispense__setup">
+              <label class="field">
+                <span class="field__label">오늘 복용할 항목</span>
+                <select id="dispense-slot" class="field__control"></select>
+              </label>
+              <label class="field">
+                <span class="field__label">라즈베리파이 주소</span>
+                <input
+                  id="dispense-pi-url"
+                  class="field__control"
+                  type="url"
+                  placeholder="https://xxxx.lhr.life/dispense"
+                />
+                <span class="field__hint">localhost.run 등 터널 URL. 변경 시 자동 저장됩니다.</span>
+              </label>
+            </div>
+
+            <div class="dispense__stage card card--flush">
+              <div id="dispense-canvas-host" class="dispense__canvas-host" aria-label="카메라 미리보기"></div>
+              <div class="dispense__overlay">
+                <p id="dispense-status" class="dispense__status" aria-live="polite">대기 중</p>
+                <p id="dispense-labels" class="dispense__labels"></p>
+                <p id="dispense-confidence" class="dispense__confidence"></p>
+              </div>
+            </div>
+
+            <div class="dispense__actions">
+              <button type="button" id="btn-dispense-start" class="btn btn-primary btn-dispense-start">
+                알약 배출 &amp; 복용 감시 시작
+              </button>
+              <button type="button" id="btn-dispense-stop" class="btn btn-ghost" hidden>
+                중지
+              </button>
+            </div>
+
+            <ol class="dispense__steps">
+              <li id="step-dispense" class="dispense-step">① 알약 배출 (모터)</li>
+              <li id="step-camera" class="dispense-step">② 카메라 감시 시작</li>
+              <li id="step-detect" class="dispense-step">③ AI 복용 확인</li>
+              <li id="step-done" class="dispense-step">④ 복용 기록 저장</li>
+            </ol>
+          </section>
+        </section>
+
         <!-- 비타민 등록: 사용자가 직접 입력 -->
         <section
           class="view-panel view-panel--manage"
@@ -348,6 +423,10 @@
       </div>
     </div>
 
+    <!-- Teachable Machine 공식 라이브러리 (ml5/p5 대신 — TM 2.4 모델 호환) -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.4/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.4/dist/teachablemachine-image.min.js"></script>
+    <script src="dispense.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

@@ -1,0 +1,36 @@
+가족 비타민 캘린더 + 스마트 복용 (시연용)
+================================
+
+■ 웹앱 실행 (Mac)
+  「웹앱 실행.command」 파일을 더블클릭하세요.
+  → 브라우저가 http://localhost:8080 으로 자동 열립니다.
+
+  ※ 카메라(AI 복용 감지)는 file:// 로는 동작하지 않습니다.
+    반드시 위 방식(로컬 서버)으로 실행하세요.
+
+■ 파일 구성
+  index.html   — 메인 페이지
+  script.js    — 캘린더·복용 기록
+  dispense.js  — AI 카메라 + 라즈베리파이 연동
+  style.css    — 스타일
+  raspberry-pi/ — Pi 모터 제어 서버 (Python)
+
+■ 스마트 복용 사용법
+  1. 「스마트 복용」 탭 이동
+  2. 오늘 복용할 항목 선택
+  3. 라즈베리파이 주소 입력 (터널 URL)
+  4. 「알약 배출 & 복용 감시 시작」 클릭
+
+■ 라즈베리파이 (별도 터미널)
+  cd raspberry-pi
+  pip install -r requirements.txt
+  python server.py
+
+  외부 접속 터널:
+  ssh -R 80:localhost:5000 nokey@localhost.run
+
+  발급 URL + /dispense 를 웹앱에 입력
+
+■ Pi 없이 테스트
+  Pi 연결 실패 시 「카메라 감시만 계속」을 선택하면
+  AI 복용 감지만 로컬에서 테스트할 수 있습니다.
