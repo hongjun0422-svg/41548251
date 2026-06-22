@@ -230,6 +230,7 @@ html[data-theme="dark"] .view-tab--active { background: rgba(255,255,255,.08); b
 .dispense__status[data-tone="warn"] { color: #fde047; }
 .dispense__labels, .dispense__confidence { margin: 2px 0 0; font-size: .68rem; font-weight: 600; color: #94a3b8; }
 .dispense__actions { display: flex; flex-direction: column; gap: 6px; }
+.ai-layout__controls .field__control[type="url"] { font-size: .72rem; }
 .dispense__steps--compact { margin: 4px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
 .dispense-step { padding: 5px 6px; border-radius: 8px; font-size: .65rem; font-weight: 700; color: var(--muted); background: rgba(148,163,184,.1); border: 1px dashed rgba(148,163,184,.25); text-align: center; }
 .dispense-step--active { color: var(--accent); border-color: rgba(13,148,136,.45); background: var(--accent-soft); }

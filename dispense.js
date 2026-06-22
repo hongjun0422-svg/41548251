@@ -12,7 +12,7 @@
   const CONFIDENCE_THRESHOLD = 0.9;
   const PREDICT_INTERVAL_MS = 200;
   const PI_URL_STORAGE_KEY = "dispensePiUrl";
-  const FIXED_PI_URL = "https://91eefcc5394e14.lhr.life";
+  const DEFAULT_PI_URL = "https://91eefcc5394e14.lhr.life";
   const PI_FETCH_TIMEOUT_MS = 12000;
   const TEST_SLOT_VALUE = "__test__|test";
 
@@ -74,8 +74,33 @@
     return label === INTAKE_LABEL && confidence > CONFIDENCE_THRESHOLD;
   }
 
+  function normalizePiUrl(raw) {
+    let url = (raw || "").trim();
+    if (!url) return DEFAULT_PI_URL;
+    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+    return url.replace(/\/$/, "");
+  }
+
   function getPiUrl() {
-    return FIXED_PI_URL;
+    const input = document.getElementById("dispense-pi-url");
+    const fromInput = input && input.value.trim();
+    if (fromInput) return normalizePiUrl(fromInput);
+    try {
+      const saved = localStorage.getItem(PI_URL_STORAGE_KEY);
+      if (saved) return normalizePiUrl(saved);
+    } catch (e) {
+      // ignore
+    }
+    return DEFAULT_PI_URL;
+  }
+
+  function savePiUrlFromInput() {
+    const piInput = document.getElementById("dispense-pi-url");
+    if (!piInput) return getPiUrl();
+    const url = normalizePiUrl(piInput.value);
+    piInput.value = url;
+    savePiUrl(url);
+    return url;
   }
 
   function setPiStatus(text, tone) {
@@ -87,21 +112,41 @@
 
   function initPiUrlField() {
     const piInput = document.getElementById("dispense-pi-url");
-    if (piInput) {
-      piInput.value = FIXED_PI_URL;
-      piInput.readOnly = true;
+    if (!piInput) return;
+
+    let initial = DEFAULT_PI_URL;
+    try {
+      const saved = localStorage.getItem(PI_URL_STORAGE_KEY);
+      if (saved) initial = normalizePiUrl(saved);
+    } catch (e) {
+      // ignore
     }
-    savePiUrl(FIXED_PI_URL);
-    setPiStatus("배출 단계에서 장비와 연동합니다.", "");
+
+    piInput.value = initial;
+    piInput.readOnly = false;
+    piInput.disabled = false;
+
+    function onPiUrlEdited() {
+      savePiUrlFromInput();
+      setPiStatus("주소가 저장되었습니다.", "ok");
+    }
+
+    piInput.addEventListener("change", onPiUrlEdited);
+    piInput.addEventListener("blur", function () {
+      if (piInput.value.trim()) onPiUrlEdited();
+    });
+
+    setPiStatus("터널 주소 변경 시 자동 저장됩니다.", "");
   }
 
   function fetchPi(options) {
+    const url = getPiUrl();
     const controller = new AbortController();
     const timer = window.setTimeout(function () {
       controller.abort();
     }, PI_FETCH_TIMEOUT_MS);
 
-    return fetch(FIXED_PI_URL, Object.assign({}, options || {}, { signal: controller.signal })).finally(function () {
+    return fetch(url, Object.assign({}, options || {}, { signal: controller.signal })).finally(function () {
       clearTimeout(timer);
     });
   }
@@ -617,6 +662,9 @@
     if (stopBtn) stopBtn.hidden = !isSystemStarted;
     if (slotSelect) slotSelect.disabled = isSystemStarted;
 
+    const piInput = document.getElementById("dispense-pi-url");
+    if (piInput) piInput.disabled = isSystemStarted || isDispensing;
+
     updateSteps();
   }
 
@@ -725,6 +773,11 @@
     getState: function () {
       return isSystemStarted ? "watching" : "idle";
     },
-    setPiUrl: savePiUrl,
+    setPiUrl: function (url) {
+      const piInput = document.getElementById("dispense-pi-url");
+      const normalized = normalizePiUrl(url);
+      if (piInput) piInput.value = normalized;
+      savePiUrl(normalized);
+    },
   };
 })();
