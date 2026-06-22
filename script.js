@@ -416,30 +416,19 @@ function renderDailySummary() {
       const taken = isSlotTaken(key, v.id, time);
       const overdue = isSlotOverdue(key, v.id, time);
       const rowClass = taken ? "slot-row--ok" : overdue ? "slot-row--miss" : "slot-row--pending";
+      const statusHtml = taken
+        ? `<span class="slot-status slot-status--done">완료</span>`
+        : `<span class="slot-status slot-status--wait">AI 인증 필요</span>`;
       return `<div class="slot-row ${rowClass}">
         <div class="slot-row__info">
           <span class="slot-row__time">${escapeHtml(time)}</span>
           <span class="slot-row__name">${escapeHtml(v.name)}</span>
           <span class="slot-row__dose">${escapeHtml(v.dosage)}</span>
         </div>
-        <button type="button" class="slot-check ${taken ? "slot-check--done" : ""}" data-slot-check="${escapeHtml(v.id)}" data-slot-time="${escapeHtml(time)}">
-          ${taken ? "완료" : "복용"}
-        </button>
+        ${statusHtml}
       </div>`;
     })
     .join("");
-
-  listEl.querySelectorAll("[data-slot-check]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const vid = btn.getAttribute("data-slot-check");
-      const time = btn.getAttribute("data-slot-time");
-      if (!vid || !time) return;
-      setSlotTaken(key, vid, time, !isSlotTaken(key, vid, time));
-      renderDailySummary();
-      renderCalendar();
-      renderDispenseSlots();
-    });
-  });
 
   renderTodaySummary();
 }
@@ -573,6 +562,7 @@ function renderDispenseSlots() {
   if (!select) return;
 
   const key = toDateKey(new Date());
+  const TEST_VALUE = "__test__|test";
   const options = getAllSlots(key).map(({ vitamin: v, time }) => {
     const taken = isSlotTaken(key, v.id, time);
     return {
@@ -582,23 +572,27 @@ function renderDispenseSlots() {
     };
   });
 
-  if (options.length === 0) {
-    select.innerHTML = `<option value="">오늘 복용 항목이 없습니다</option>`;
-    return;
-  }
+  const testOption = `<option value="${TEST_VALUE}">🧪 테스트 (기록 없음 · AI 확인용)</option>`;
 
   select.innerHTML =
     `<option value="">복용할 항목을 선택하세요</option>` +
-    options
-      .map((o) => `<option value="${escapeHtml(o.value)}"${o.disabled ? " disabled" : ""}>${escapeHtml(o.label)}</option>`)
-      .join("");
+    testOption +
+    (options.length
+      ? options
+          .map(
+            (o) =>
+              `<option value="${escapeHtml(o.value)}"${o.disabled ? " disabled" : ""}>${escapeHtml(o.label)}</option>`
+          )
+          .join("")
+      : `<option value="" disabled>오늘 등록된 복용 항목 없음</option>`);
 }
 
 function setupDispenseSystem() {
   if (typeof window.DispenseSystem === "undefined") return;
 
   window.DispenseSystem.init({
-    onComplete({ vitaminId, time }) {
+    onComplete({ vitaminId, time, isTest }) {
+      if (isTest) return;
       const key = toDateKey(new Date());
       setSlotTaken(key, vitaminId, time, true);
       renderDailySummary();

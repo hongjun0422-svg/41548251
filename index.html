@@ -43,7 +43,7 @@
             <span class="theme-toggle__text">테마</span>
           </button>
         </div>
-        <p class="sub">오늘 복용을 기록하고, AI로 복용 여부를 확인하세요.</p>
+        <p class="sub">AI 복용 인증을 완료하면 오늘 복용이 자동으로 기록됩니다.</p>
       </header>
 
       <div class="views tab-home" id="views">
@@ -83,7 +83,7 @@
           <div class="daily-hero card">
             <p id="daily-date" class="daily-hero__date"></p>
             <h2 class="daily-hero__title">오늘의 복용</h2>
-            <p class="daily-hero__hint">버튼으로 수동 기록하거나, AI 복용 탭에서 자동 확인하세요.</p>
+            <p class="daily-hero__hint">복용 기록은 AI 복용 탭에서 인증 완료 후에만 저장됩니다.</p>
             <div id="daily-list" class="daily-list daily-list--flat"></div>
           </div>
 
@@ -149,6 +149,7 @@
               <label class="field">
                 <span class="field__label">오늘 복용할 항목</span>
                 <select id="dispense-slot" class="field__control"></select>
+                <span class="field__hint">「테스트」는 AI 동작 확인용이며 복용 기록에 남지 않습니다.</span>
               </label>
               <label class="field">
                 <span class="field__label">라즈베리파이 주소</span>

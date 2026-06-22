@@ -13,6 +13,7 @@
   const PREDICT_INTERVAL_MS = 200;
   const PI_URL_STORAGE_KEY = "dispensePiUrl";
   const DEFAULT_PI_URL = "https://c61be2c605ca34.lhr.life/dispense";
+  const TEST_SLOT_VALUE = "__test__|test";
 
   let tmModel = null;
   /** @type {HTMLVideoElement | null} */
@@ -38,6 +39,10 @@
   let drawFrameId = null;
   let predictTimerId = null;
   let intakeHandled = false;
+
+  function isTestMode() {
+    return !!(activeSlot && activeSlot.isTest);
+  }
 
   function isIntakeDetected() {
     return label === INTAKE_LABEL && confidence > CONFIDENCE_THRESHOLD;
@@ -114,7 +119,11 @@
     if (isIntakeDetected()) {
       canvasCtx.fillStyle = "#22c55e";
       canvasCtx.font = "bold 28px sans-serif";
-      canvasCtx.fillText("복용 완료! ✅", canvasEl.width / 2, canvasEl.height - 40);
+      canvasCtx.fillText(
+        isTestMode() ? "테스트 성공! ✅ (기록 없음)" : "복용 완료! ✅",
+        canvasEl.width / 2,
+        canvasEl.height - 40
+      );
     } else {
       canvasCtx.fillStyle = "#fff";
       canvasCtx.font = "22px sans-serif";
@@ -248,9 +257,27 @@
   }
 
   function handleIntakeComplete() {
+    if (isTestMode()) {
+      updateDispenseUI();
+      window.setTimeout(function () {
+        if (!isSystemStarted || !isTestMode()) return;
+        label = "";
+        confidence = 0;
+        lastResults = [];
+        intakeHandled = false;
+        updateDispenseUI();
+        startPredictLoop();
+      }, 2500);
+      return;
+    }
+
     updateDispenseUI();
     if (onCompleteCallback && activeSlot) {
-      onCompleteCallback({ vitaminId: activeSlot.vitaminId, time: activeSlot.time });
+      onCompleteCallback({
+        vitaminId: activeSlot.vitaminId,
+        time: activeSlot.time,
+        isTest: false,
+      });
     }
   }
 
@@ -291,12 +318,14 @@
     lastResults = [];
     intakeHandled = false;
 
-    console.log("🚀 시스템 구동: 모터 작동 신호 송신 및 카메라 On!");
+    console.log(isTestMode() ? "🧪 테스트 모드: 카메라 감시 시작 (기록 없음)" : "🚀 시스템 구동: 모터 작동 신호 송신 및 카메라 On!");
     updateDispenseUI();
 
-    triggerRaspberryPi().catch(function () {
-      console.warn("라즈베리파이 연결 실패 — 카메라만 계속");
-    });
+    if (!isTestMode()) {
+      triggerRaspberryPi().catch(function () {
+        console.warn("라즈베리파이 연결 실패 — 카메라만 계속");
+      });
+    }
 
     try {
       await startCamera();
@@ -360,9 +389,15 @@
       } else if (!modelReady) {
         statusEl.textContent = "AI 모델 로딩 중…";
         statusEl.dataset.tone = "warn";
+      } else if (isIntakeDetected() && isTestMode()) {
+        statusEl.textContent = "테스트 성공! AI가 꿀꺽을 감지했습니다. (기록 없음 · 곧 다시 감시)";
+        statusEl.dataset.tone = "ok";
       } else if (isIntakeDetected()) {
         statusEl.textContent = "복용 완료! ✅ 오늘 기록에 저장되었습니다.";
         statusEl.dataset.tone = "ok";
+      } else if (isSystemStarted && isTestMode()) {
+        statusEl.textContent = "테스트 모드 — 카메라로 AI 동작을 확인합니다. (기록 없음)";
+        statusEl.dataset.tone = "info";
       } else if (isSystemStarted) {
         statusEl.textContent = "카메라로 복용을 확인하고 있습니다. (꿀꺽 ≥90%)";
         statusEl.dataset.tone = "info";
@@ -389,34 +424,41 @@
     }
 
     if (startBtn) {
-      const done = isIntakeDetected();
-      startBtn.disabled = !modelReady || (isSystemStarted && !done);
+      const selectEl = document.getElementById("dispense-slot");
+      const willTest = selectEl && selectEl.value === TEST_SLOT_VALUE;
+      const done = isIntakeDetected() && !isTestMode();
+      startBtn.disabled = !modelReady || (isSystemStarted && !done && !isTestMode());
       startBtn.textContent = done
         ? "다시 시작"
         : isSystemStarted
-          ? "감시 중…"
+          ? isTestMode()
+            ? "테스트 중…"
+            : "감시 중…"
           : !modelReady
             ? "AI 모델 로딩 중…"
-            : "알약 배출 & 복용 감시 시작";
+            : willTest
+              ? "테스트 시작"
+              : "알약 배출 & 복용 감시 시작";
     }
     if (stopBtn) stopBtn.hidden = !isSystemStarted;
-    if (slotSelect) slotSelect.disabled = isSystemStarted && !isIntakeDetected();
+    if (slotSelect) slotSelect.disabled = isSystemStarted;
 
     updateSteps();
   }
 
   function updateSteps() {
-    const done = isIntakeDetected();
+    const detected = isIntakeDetected();
+    const isTest = isTestMode();
     const map = {
-      dispense: isSystemStarted,
+      dispense: isSystemStarted && !isTest,
       camera: isSystemStarted && !!videoEl,
-      detect: done,
-      done: done,
+      detect: detected,
+      done: detected && !isTest,
     };
     Object.keys(map).forEach(function (key) {
       const el = document.getElementById("step-" + key);
       if (el) {
-        el.classList.toggle("dispense-step--active", !!map[key] && !done);
+        el.classList.toggle("dispense-step--active", !!map[key] && !(key === "done" && isTest));
         el.classList.toggle("dispense-step--done", !!map[key]);
       }
     });
@@ -446,7 +488,7 @@
 
     if (startBtn) {
       startBtn.addEventListener("click", function () {
-        if (isIntakeDetected()) {
+        if (isIntakeDetected() && !isTestMode()) {
           stopSystem();
           return;
         }
@@ -460,13 +502,22 @@
           }
           return;
         }
-        const parts = value.split("|");
-        startSystem({ vitaminId: parts[0], time: parts[1] });
+        if (value === TEST_SLOT_VALUE) {
+          startSystem({ isTest: true });
+        } else {
+          const parts = value.split("|");
+          startSystem({ vitaminId: parts[0], time: parts[1], isTest: false });
+        }
       });
     }
 
     if (stopBtn) {
       stopBtn.addEventListener("click", stopSystem);
+    }
+
+    const slotSelectEl = document.getElementById("dispense-slot");
+    if (slotSelectEl) {
+      slotSelectEl.addEventListener("change", updateDispenseUI);
     }
 
     loadModel();
