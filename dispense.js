@@ -39,6 +39,27 @@
   let drawFrameId = null;
   let predictTimerId = null;
   let intakeHandled = false;
+  let successBorderTimer = null;
+
+  function showSuccessBorder() {
+    const stage = document.querySelector(".ai-layout__stage");
+    if (!stage) return;
+    stage.classList.add("ai-layout__stage--success");
+    if (successBorderTimer) clearTimeout(successBorderTimer);
+    successBorderTimer = window.setTimeout(function () {
+      stage.classList.remove("ai-layout__stage--success");
+      successBorderTimer = null;
+    }, 2000);
+  }
+
+  function clearSuccessBorder() {
+    const stage = document.querySelector(".ai-layout__stage");
+    if (stage) stage.classList.remove("ai-layout__stage--success");
+    if (successBorderTimer) {
+      clearTimeout(successBorderTimer);
+      successBorderTimer = null;
+    }
+  }
 
   function isTestMode() {
     return !!(activeSlot && activeSlot.isTest);
@@ -153,7 +174,12 @@
     canvasCtx.textBaseline = "alphabetic";
 
     const labelSize = Math.max(18, Math.round(canvasEl.height * 0.045));
-    const bottomPad = Math.max(28, Math.round(canvasEl.height * 0.06));
+    const bottomPad = Math.max(72, Math.round(canvasEl.height * 0.14));
+    const textY = canvasEl.height - bottomPad;
+
+    canvasCtx.shadowColor = "rgba(0,0,0,.75)";
+    canvasCtx.shadowBlur = 6;
+    canvasCtx.shadowOffsetY = 1;
 
     if (isIntakeDetected()) {
       canvasCtx.fillStyle = "#22c55e";
@@ -161,13 +187,17 @@
       canvasCtx.fillText(
         isTestMode() ? "테스트 성공! ✅ (기록 없음)" : "복용 완료! ✅",
         canvasEl.width / 2,
-        canvasEl.height - bottomPad
+        textY
       );
     } else {
       canvasCtx.fillStyle = "#fff";
       canvasCtx.font = labelSize + "px sans-serif";
-      canvasCtx.fillText("현재 상태: " + (label || "분석 중…"), canvasEl.width / 2, canvasEl.height - bottomPad);
+      canvasCtx.fillText("현재 상태: " + (label || "분석 중…"), canvasEl.width / 2, textY);
     }
+
+    canvasCtx.shadowColor = "transparent";
+    canvasCtx.shadowBlur = 0;
+    canvasCtx.shadowOffsetY = 0;
 
     if (isSystemStarted) {
       drawFrameId = requestAnimationFrame(drawCameraFrame);
@@ -238,6 +268,7 @@
 
       if (isIntakeDetected() && !intakeHandled) {
         intakeHandled = true;
+        showSuccessBorder();
         stopPredictLoop();
         handleIntakeComplete();
         return;
@@ -380,6 +411,7 @@
   function stopSystem() {
     isSystemStarted = false;
     intakeHandled = false;
+    clearSuccessBorder();
     label = "";
     confidence = 0;
     lastResults = [];
