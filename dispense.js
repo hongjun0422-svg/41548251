@@ -69,65 +69,104 @@
     }
   }
 
+  function getCanvasHostSize() {
+    const host = document.getElementById("dispense-canvas-host");
+    if (!host) return { width: 960, height: 540 };
+    const w = host.clientWidth || 960;
+    const h = host.clientHeight || 540;
+    return {
+      width: Math.max(400, Math.floor(w)),
+      height: Math.max(300, Math.floor(h)),
+    };
+  }
+
+  function resizeCanvasToHost() {
+    ensureCanvas();
+    if (!canvasEl) return;
+    const size = getCanvasHostSize();
+    if (canvasEl.width !== size.width || canvasEl.height !== size.height) {
+      canvasEl.width = size.width;
+      canvasEl.height = size.height;
+    }
+  }
+
+  function drawVideoCover() {
+    if (!canvasCtx || !canvasEl || !videoEl || videoEl.readyState < videoEl.HAVE_CURRENT_DATA) return;
+
+    const vw = videoEl.videoWidth || 640;
+    const vh = videoEl.videoHeight || 480;
+    const cw = canvasEl.width;
+    const ch = canvasEl.height;
+    const scale = Math.max(cw / vw, ch / vh);
+    const dw = vw * scale;
+    const dh = vh * scale;
+    const dx = (cw - dw) / 2;
+    const dy = (ch - dh) / 2;
+
+    canvasCtx.save();
+    canvasCtx.translate(cw, 0);
+    canvasCtx.scale(-1, 1);
+    canvasCtx.drawImage(videoEl, dx, dy, dw, dh);
+    canvasCtx.restore();
+  }
+
   function ensureCanvas() {
     if (canvasEl) return;
     const host = document.getElementById("dispense-canvas-host");
     if (!host) return;
 
     canvasEl = document.createElement("canvas");
-    canvasEl.width = 640;
-    canvasEl.height = 360;
     canvasEl.id = "dispense-canvas";
     host.innerHTML = "";
     host.appendChild(canvasEl);
     canvasCtx = canvasEl.getContext("2d");
+    resizeCanvasToHost();
   }
 
   function drawIdleScreen(message) {
-    ensureCanvas();
+    resizeCanvasToHost();
     if (!canvasCtx || !canvasEl) return;
     canvasCtx.fillStyle = "#0f172a";
     canvasCtx.fillRect(0, 0, canvasEl.width, canvasEl.height);
     canvasCtx.fillStyle = "#94a3b8";
-    canvasCtx.font = "18px sans-serif";
+    const fontSize = Math.max(16, Math.round(canvasEl.height * 0.04));
+    canvasCtx.font = fontSize + "px sans-serif";
     canvasCtx.textAlign = "center";
     canvasCtx.textBaseline = "middle";
     const lines = (message || "아래 버튼을 누르면\n모터가 작동하고 카메라 감시가 시작됩니다.").split("\n");
-    const mid = canvasEl.height / 2 - ((lines.length - 1) * 12);
+    const mid = canvasEl.height / 2 - ((lines.length - 1) * (fontSize * 0.5));
     lines.forEach(function (line, i) {
-      canvasCtx.fillText(line, canvasEl.width / 2, mid + i * 28);
+      canvasCtx.fillText(line, canvasEl.width / 2, mid + i * (fontSize * 1.4));
     });
   }
 
   function drawCameraFrame() {
     if (!canvasCtx || !canvasEl) return;
 
+    resizeCanvasToHost();
     canvasCtx.fillStyle = "#000";
     canvasCtx.fillRect(0, 0, canvasEl.width, canvasEl.height);
 
-    if (videoEl && videoEl.readyState >= videoEl.HAVE_CURRENT_DATA) {
-      canvasCtx.save();
-      canvasCtx.translate(canvasEl.width, 0);
-      canvasCtx.scale(-1, 1);
-      canvasCtx.drawImage(videoEl, 0, 0, canvasEl.width, canvasEl.height);
-      canvasCtx.restore();
-    }
+    drawVideoCover();
 
     canvasCtx.textAlign = "center";
     canvasCtx.textBaseline = "alphabetic";
 
+    const labelSize = Math.max(18, Math.round(canvasEl.height * 0.045));
+    const bottomPad = Math.max(28, Math.round(canvasEl.height * 0.06));
+
     if (isIntakeDetected()) {
       canvasCtx.fillStyle = "#22c55e";
-      canvasCtx.font = "bold 28px sans-serif";
+      canvasCtx.font = "bold " + labelSize + "px sans-serif";
       canvasCtx.fillText(
         isTestMode() ? "테스트 성공! ✅ (기록 없음)" : "복용 완료! ✅",
         canvasEl.width / 2,
-        canvasEl.height - 40
+        canvasEl.height - bottomPad
       );
     } else {
       canvasCtx.fillStyle = "#fff";
-      canvasCtx.font = "22px sans-serif";
-      canvasCtx.fillText("현재 상태: " + (label || "분석 중…"), canvasEl.width / 2, canvasEl.height - 40);
+      canvasCtx.font = labelSize + "px sans-serif";
+      canvasCtx.fillText("현재 상태: " + (label || "분석 중…"), canvasEl.width / 2, canvasEl.height - bottomPad);
     }
 
     if (isSystemStarted) {
@@ -243,7 +282,7 @@
     document.body.appendChild(videoEl);
 
     mediaStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user", width: 640, height: 360 },
+      video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
       audio: false,
     });
 
@@ -534,12 +573,25 @@
 
     loadModel();
     updateDispenseUI();
+
+    let resizeTimer;
+    window.addEventListener("resize", function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(function () {
+        resizeCanvasToHost();
+        if (!isSystemStarted) drawIdleScreen();
+      }, 120);
+    });
   }
 
   window.DispenseSystem = {
     init: initDispenseBridge,
     start: startSystem,
     stop: stopSystem,
+    resizeCanvas: function () {
+      resizeCanvasToHost();
+      if (!isSystemStarted) drawIdleScreen();
+    },
     getState: function () {
       return isSystemStarted ? "watching" : "idle";
     },

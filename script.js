@@ -1050,6 +1050,11 @@ function setupViewTabs() {
       // ignore
     }
     if (view === "home") renderCalendar();
+    if (view === "ai" && window.DispenseSystem?.resizeCanvas) {
+      requestAnimationFrame(function () {
+        window.DispenseSystem.resizeCanvas();
+      });
+    }
   }
 
   switchAppView = setView;
