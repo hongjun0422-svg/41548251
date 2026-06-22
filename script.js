@@ -459,12 +459,11 @@ function renderCellStatus(usersEl, ctx) {
   const { key, outside, futureInMonth, futurePadding, todayKey } = ctx;
 
   if (futureInMonth || futurePadding) {
-    if (!isMobileCalendar()) {
-      const note = document.createElement("div");
-      note.className = "cell-future-note";
-      note.textContent = "—";
-      usersEl.appendChild(note);
-    }
+    const note = document.createElement("div");
+    note.className = "cell-future-note";
+    note.textContent = "·";
+    note.title = "예정";
+    usersEl.appendChild(note);
     return;
   }
 
@@ -522,8 +521,11 @@ function renderCalendar() {
     const isToday =
       isThisMonth && !outside && date.getDate() === today.getDate() && date.getMonth() === today.getMonth();
     const futureDay = isAfterToday(date);
+    const dow = date.getDay();
+    if (dow === 0 || dow === 6) cell.classList.add("cell--weekend");
     if (isToday) cell.classList.add("cell--today");
     if ((!outside && futureDay) || (outside && futureDay)) cell.classList.add("cell--future");
+    cell.setAttribute("aria-label", `${date.getMonth() + 1}월 ${date.getDate()}일`);
 
     const top = document.createElement("div");
     top.className = "cell-top";
@@ -549,6 +551,11 @@ function renderCalendar() {
       todayKey,
     });
     cell.appendChild(usersEl);
+
+    if (!outside && !futureDay) {
+      const dayStatus = getDayStatus(key);
+      if (dayStatus === "ok" || dayStatus === "miss") cell.classList.add(`cell--${dayStatus}`);
+    }
     frag.appendChild(cell);
   });
 
