@@ -35,9 +35,10 @@
         <nav class="view-tabs" role="tablist" aria-label="화면 전환">
           <button type="button" class="view-tab view-tab--active" role="tab" id="tab-home" data-view="home" aria-selected="true" aria-controls="view-home">복용 관리</button>
           <button type="button" class="view-tab" role="tab" id="tab-ai" data-view="ai" aria-selected="false" aria-controls="view-ai">AI 복용</button>
+          <button type="button" class="view-tab" role="tab" id="tab-manage" data-view="manage" aria-selected="false" aria-controls="view-manage">영양제 등록</button>
         </nav>
 
-        <p id="dash-header-sub" class="dash-header__sub">오늘 복용 · 캘린더 · 영양제 등록</p>
+        <p id="dash-header-sub" class="dash-header__sub">오늘 복용 · 월간 캘린더</p>
         <div class="dash-header__actions">
           <p id="daily-date" class="dash-header__date"></p>
           <button type="button" id="theme-toggle" class="theme-toggle" aria-label="다크 모드로 전환">
@@ -84,8 +85,8 @@
             </section>
           </aside>
 
-          <aside class="dash-col dash-col--right">
-            <section class="panel card panel--calendar">
+          <aside class="dash-col dash-col--right dash-col--calendar-only">
+            <section class="panel card panel--calendar panel--grow">
               <div class="panel__head panel__head--row">
                 <h2 class="panel__title" id="month-label"></h2>
                 <div class="cal-nav">
@@ -94,9 +95,9 @@
                   <button type="button" id="btn-next" class="btn btn-circle btn-sm" aria-label="다음 달">›</button>
                 </div>
               </div>
-              <div class="calendar-compact panel__body">
+              <div class="calendar-fill panel__body">
                 <div class="weekdays" id="weekdays"></div>
-                <div class="grid grid--dash" id="calendar-grid" role="grid"></div>
+                <div class="grid grid--dash grid--fill" id="calendar-grid" role="grid"></div>
                 <div class="hint hint--inline">
                   <span class="hint__tag hint__tag--ok">완료</span>
                   <span class="hint__tag hint__tag--miss">미복용</span>
@@ -104,24 +105,47 @@
                 </div>
               </div>
             </section>
-
-            <section class="panel card panel--grow">
-              <div class="panel__head">
-                <h2 class="panel__title">영양제 등록</h2>
-              </div>
-              <form id="vitamin-form" class="form form--compact panel__body" autocomplete="off">
-                <div class="form-grid">
-                  <input id="v-name" name="name" class="field__control" type="text" placeholder="이름" required />
-                  <input id="v-dosage" name="dosage" class="field__control" type="text" placeholder="복용량" required />
-                  <input id="v-times" name="times" class="field__control" type="text" placeholder="08:00, 21:00" required />
-                  <textarea id="v-ingredients" name="ingredients" class="field__control field__control--textarea" rows="2" placeholder="성분" required></textarea>
-                </div>
-                <button type="submit" class="btn btn-primary btn-sm">등록</button>
-                <p id="form-msg" class="form-msg form-msg--tiny" aria-live="polite"></p>
-              </form>
-              <div id="vitamin-registry" class="registry registry--compact panel__body"></div>
-            </section>
           </aside>
+        </div>
+
+        <!-- 영양제 등록 탭 -->
+        <div id="view-manage" class="dash-view dash-view--manage" role="tabpanel" aria-labelledby="tab-manage" hidden>
+          <section class="panel card panel--manage-form">
+            <div class="panel__head">
+              <h2 class="panel__title">영양제 등록</h2>
+              <p class="panel__desc">이름 · 복용량 · 시간 · 성분</p>
+            </div>
+            <form id="vitamin-form" class="form form--manage panel__body" autocomplete="off">
+              <div class="form-grid form-grid--manage">
+                <label class="field">
+                  <span class="field__label">이름</span>
+                  <input id="v-name" name="name" class="field__control" type="text" placeholder="종합비타민" required />
+                </label>
+                <label class="field">
+                  <span class="field__label">복용량</span>
+                  <input id="v-dosage" name="dosage" class="field__control" type="text" placeholder="1정" required />
+                </label>
+                <label class="field">
+                  <span class="field__label">복용 시간</span>
+                  <input id="v-times" name="times" class="field__control" type="text" placeholder="08:00, 21:00" required />
+                </label>
+                <label class="field field--full">
+                  <span class="field__label">성분</span>
+                  <textarea id="v-ingredients" name="ingredients" class="field__control field__control--textarea" rows="3" placeholder="비타민 C, D…" required></textarea>
+                </label>
+              </div>
+              <button type="submit" class="btn btn-primary btn-block">등록</button>
+              <p id="form-msg" class="form-msg form-msg--tiny" aria-live="polite"></p>
+            </form>
+          </section>
+
+          <section class="panel card panel--manage-list panel--grow">
+            <div class="panel__head panel__head--row">
+              <h2 class="panel__title">등록 목록</h2>
+              <p class="panel__desc panel__desc--inline" id="vitamin-count"></p>
+            </div>
+            <div id="vitamin-registry" class="registry registry--manage panel__body"></div>
+          </section>
         </div>
 
         <!-- AI 복용 탭 -->

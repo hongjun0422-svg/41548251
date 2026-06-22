@@ -406,7 +406,7 @@ function renderDailySummary() {
   const slots = getAllSlots(key);
 
   if (slots.length === 0) {
-    listEl.innerHTML = `<p class="daily-empty">등록된 영양제가 없습니다. 우측에서 추가하세요.</p>`;
+    listEl.innerHTML = `<p class="daily-empty">등록된 영양제가 없습니다. 「영양제 등록」 탭에서 추가하세요.</p>`;
     renderTodaySummary();
     return;
   }
@@ -609,7 +609,10 @@ function setupDispenseSystem() {
 
 function renderManage() {
   const registry = document.getElementById("vitamin-registry");
+  const countEl = document.getElementById("vitamin-count");
   if (!registry) return;
+
+  if (countEl) countEl.textContent = VITAMINS.length ? `${VITAMINS.length}개` : "";
 
   if (VITAMINS.length === 0) {
     registry.innerHTML = `<div class="registry-empty">등록된 영양제가 없습니다.</div>`;
@@ -1019,15 +1022,17 @@ function setupViewTabs() {
   const views = {
     home: document.getElementById("view-home"),
     ai: document.getElementById("view-ai"),
+    manage: document.getElementById("view-manage"),
   };
   const sub = document.getElementById("dash-header-sub");
   const SUBS = {
-    home: "오늘 복용 · 캘린더 · 영양제 등록",
+    home: "오늘 복용 · 월간 캘린더",
     ai: "AI 복용 인증 완료 시에만 기록됩니다 · 배출 → 카메라 → 꿀꺽 감지",
+    manage: "영양제 등록 · 복용 시간 설정 · 목록 관리",
   };
 
   function setView(name) {
-    const view = name === "ai" ? "ai" : "home";
+    const view = name === "ai" || name === "manage" ? name : "home";
     Object.entries(views).forEach(([key, el]) => {
       if (!el) return;
       const active = key === view;
@@ -1060,7 +1065,7 @@ function setupViewTabs() {
   } catch {
     // ignore
   }
-  setView(saved === "ai" ? "ai" : "home");
+  setView(saved === "ai" || saved === "manage" ? saved : "home");
 }
 
 purgeFutureIntakeLogs();
