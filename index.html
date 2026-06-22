@@ -2,7 +2,7 @@
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f0fdfa" />
     <meta name="color-scheme" content="light dark" />
     <title>나의 복용 관리</title>
@@ -17,20 +17,24 @@
   <body>
     <div class="bg-pattern" aria-hidden="true"></div>
 
-    <div class="app">
-      <header class="header">
-        <div class="header__brand">
-          <span class="header__logo" aria-hidden="true">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+    <div class="dashboard" id="dashboard">
+      <header class="dash-header card">
+        <div class="dash-header__brand">
+          <span class="dash-header__logo" aria-hidden="true">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
               <path d="M12 2a3 3 0 0 1 3 3v2h2a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2V5a3 3 0 0 1 3-3Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
               <path d="M9 14l2 2 4-4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </span>
           <div>
-            <p class="eyebrow">My routine</p>
+            <p class="eyebrow">PillCare Dashboard</p>
             <h1>나의 복용 관리</h1>
           </div>
-          <button type="button" id="theme-toggle" class="theme-toggle" aria-label="다크 모드로 전환" title="테마 전환">
+        </div>
+        <p class="dash-header__sub">AI 복용 인증 완료 시에만 기록됩니다 · PC 전체 화면 대시보드</p>
+        <div class="dash-header__actions">
+          <p id="daily-date" class="dash-header__date"></p>
+          <button type="button" id="theme-toggle" class="theme-toggle" aria-label="다크 모드로 전환">
             <span class="theme-toggle__icon" aria-hidden="true">
               <svg class="theme-ico theme-ico--sun" width="18" height="18" viewBox="0 0 24 24" fill="none">
                 <path d="M12 2v3M12 19v3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M2 12h3M19 12h3M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
@@ -40,184 +44,121 @@
                 <path d="M21 13.2A8.2 8.2 0 0 1 10.8 3a7.2 7.2 0 1 0 10.2 10.2Z" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
             </span>
-            <span class="theme-toggle__text">테마</span>
           </button>
         </div>
-        <p class="sub">AI 복용 인증을 완료하면 오늘 복용이 자동으로 기록됩니다.</p>
       </header>
 
-      <div class="views tab-home" id="views">
-        <div class="view-tabs" role="tablist" aria-label="화면 전환">
-          <button type="button" class="view-tab view-tab--active" id="tab-home" role="tab" aria-selected="true" aria-controls="panel-home" data-view="home">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M3 10.5L12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-9.5Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
-            </svg>
-            홈
-          </button>
-          <button type="button" class="view-tab" id="tab-calendar" role="tab" aria-selected="false" aria-controls="panel-calendar" data-view="calendar">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" stroke-width="1.75"/>
-              <path d="M8 3v4M16 3v4M3 11h18" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
-            </svg>
-            기록
-          </button>
-          <button type="button" class="view-tab" id="tab-dispense" role="tab" aria-selected="false" aria-controls="panel-dispense" data-view="dispense">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M12 2a3 3 0 0 1 3 3v2h2a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2V5a3 3 0 0 1 3-3Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
-              <path d="M9 14l2 2 4-4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            AI 복용
-          </button>
-          <button type="button" class="view-tab" id="tab-manage" role="tab" aria-selected="false" aria-controls="panel-manage" data-view="manage">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
-            </svg>
-            등록
-          </button>
-        </div>
+      <!-- 좌: 오늘 복용 + 알림 -->
+      <aside class="dash-col dash-col--left">
+        <section class="panel card" id="today-summary" aria-live="polite"></section>
 
-        <!-- 홈: 오늘 복용 + 알림 -->
-        <section class="view-panel view-panel--home" id="panel-home" role="tabpanel" aria-labelledby="tab-home">
-          <section class="today-summary card" id="today-summary" aria-live="polite"></section>
-
-          <div class="daily-hero card">
-            <p id="daily-date" class="daily-hero__date"></p>
-            <h2 class="daily-hero__title">오늘의 복용</h2>
-            <p class="daily-hero__hint">복용 기록은 AI 복용 탭에서 인증 완료 후에만 저장됩니다.</p>
-            <div id="daily-list" class="daily-list daily-list--flat"></div>
+        <section class="panel card panel--grow">
+          <div class="panel__head">
+            <h2 class="panel__title">오늘의 복용</h2>
+            <p class="panel__desc">AI 인증 후 자동 기록</p>
           </div>
-
-          <section class="notify-settings card" aria-labelledby="notify-settings-title">
-            <div class="manage__head">
-              <h2 id="notify-settings-title" class="manage__title">알림 설정</h2>
-              <p class="manage__desc">복용 시간·미복용 알림을 설정합니다.</p>
-            </div>
-            <div class="notify-settings__body">
-              <label class="notify-toggle"><input type="checkbox" id="notify-enabled" /><span>알림 사용</span></label>
-              <label class="notify-toggle"><input type="checkbox" id="notify-intake" /><span>복용 시간 알림</span></label>
-              <label class="notify-toggle"><input type="checkbox" id="notify-missed" /><span>미복용 알림</span></label>
-              <label class="field field--inline">
-                <span class="field__label">미복용 판정 (분 후)</span>
-                <input id="notify-delay" class="field__control" type="number" min="5" max="180" step="5" value="30" />
-              </label>
-              <button type="button" id="btn-notify-permission" class="btn btn-ghost btn-notify-perm">알림 권한 요청</button>
-              <p id="notify-status" class="form-msg" aria-live="polite"></p>
-            </div>
-          </section>
+          <div id="daily-list" class="daily-list daily-list--flat panel__body"></div>
         </section>
 
-        <!-- 기록: 캘린더 -->
-        <section class="view-panel view-panel--calendar" id="panel-calendar" role="tabpanel" aria-labelledby="tab-calendar" hidden>
-          <section class="toolbar toolbar--calendar card" aria-label="월 이동">
-            <button type="button" id="btn-prev" class="btn btn-circle" aria-label="이전 달">
-              <svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-            <div class="toolbar__month"><h2 id="month-label" class="month-label"></h2></div>
-            <button type="button" id="btn-next" class="btn btn-circle" aria-label="다음 달">
-              <svg class="ico" width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-            <button type="button" id="btn-today" class="btn btn-primary btn-today" aria-label="오늘로 이동">
-              <span class="btn-today__long">이번 달 오늘</span>
-              <span class="btn-today__short" aria-hidden="true">오늘</span>
-            </button>
-          </section>
+        <section class="panel card panel--notify" aria-labelledby="notify-settings-title">
+          <div class="panel__head panel__head--compact">
+            <h2 id="notify-settings-title" class="panel__title">알림</h2>
+          </div>
+          <div class="notify-compact panel__body">
+            <label class="notify-toggle"><input type="checkbox" id="notify-enabled" /><span>사용</span></label>
+            <label class="notify-toggle"><input type="checkbox" id="notify-intake" /><span>복용 시간</span></label>
+            <label class="notify-toggle"><input type="checkbox" id="notify-missed" /><span>미복용</span></label>
+            <label class="field field--inline">
+              <span class="field__label">판정(분)</span>
+              <input id="notify-delay" class="field__control" type="number" min="5" max="180" step="5" value="30" />
+            </label>
+            <button type="button" id="btn-notify-permission" class="btn btn-ghost btn-sm">권한</button>
+            <p id="notify-status" class="form-msg form-msg--tiny" aria-live="polite"></p>
+          </div>
+        </section>
+      </aside>
 
-          <div class="calendar-wrap card card--flush">
-            <div class="calendar-scroll">
-              <div class="calendar-sheet">
-                <div class="weekdays" id="weekdays"></div>
-                <div class="grid" id="calendar-grid" role="grid" aria-label="월간 복용 기록"></div>
-              </div>
-            </div>
+      <!-- 중: AI 복용 -->
+      <main class="dash-col dash-col--center">
+        <section class="panel card panel--ai" aria-labelledby="dispense-title">
+          <div class="panel__head">
+            <h2 id="dispense-title" class="panel__title">AI 복용 확인</h2>
+            <p class="panel__desc">배출 → 카메라 → 꿀꺽 감지 → 기록</p>
           </div>
 
-          <footer class="hint hint--compact" aria-label="상태 범례">
-            <div class="hint__item hint__item--ok"><span class="hint__ico" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span class="hint__label">완료</span></div>
-            <div class="hint__item hint__item--miss"><span class="hint__ico" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span><span class="hint__label">미복용</span></div>
-            <div class="hint__item hint__item--none"><span class="hint__ico" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.75" stroke-dasharray="4 3"/></svg></span><span class="hint__label">없음</span></div>
-          </footer>
-        </section>
-
-        <!-- AI 복용 -->
-        <section class="view-panel view-panel--dispense" id="panel-dispense" role="tabpanel" aria-labelledby="tab-dispense" hidden>
-          <section class="dispense card" aria-labelledby="dispense-title">
-            <div class="manage__head">
-              <h2 id="dispense-title" class="manage__title">AI 복용 확인</h2>
-              <p class="manage__desc">알약 배출 후 카메라가 꿀꺽(삼킴)을 감지하면 자동으로 기록됩니다.</p>
-            </div>
-            <div class="dispense__setup">
+          <div class="ai-layout">
+            <div class="ai-layout__controls">
               <label class="field">
-                <span class="field__label">오늘 복용할 항목</span>
+                <span class="field__label">복용 항목</span>
                 <select id="dispense-slot" class="field__control"></select>
-                <span class="field__hint">「테스트」는 AI 동작 확인용이며 복용 기록에 남지 않습니다.</span>
               </label>
               <label class="field">
-                <span class="field__label">라즈베리파이 주소</span>
+                <span class="field__label">라즈베리파이</span>
                 <input id="dispense-pi-url" class="field__control" type="url" placeholder="https://xxxx.lhr.life/dispense" />
-                <span class="field__hint">터널 URL. 변경 시 자동 저장됩니다.</span>
               </label>
+              <div class="dispense__actions">
+                <button type="button" id="btn-dispense-start" class="btn btn-primary btn-block">시작</button>
+                <button type="button" id="btn-dispense-stop" class="btn btn-ghost btn-block" hidden>중지</button>
+              </div>
+              <ol class="dispense__steps dispense__steps--compact">
+                <li id="step-dispense" class="dispense-step">① 배출</li>
+                <li id="step-camera" class="dispense-step">② 카메라</li>
+                <li id="step-detect" class="dispense-step">③ AI</li>
+                <li id="step-done" class="dispense-step">④ 저장</li>
+              </ol>
             </div>
-            <div class="dispense__stage card card--flush">
-              <div id="dispense-canvas-host" class="dispense__canvas-host" aria-label="카메라 미리보기"></div>
+
+            <div class="ai-layout__stage">
+              <div id="dispense-canvas-host" class="dispense__canvas-host" aria-label="카메라"></div>
               <div class="dispense__overlay">
                 <p id="dispense-status" class="dispense__status" aria-live="polite">대기 중</p>
                 <p id="dispense-labels" class="dispense__labels"></p>
                 <p id="dispense-confidence" class="dispense__confidence"></p>
               </div>
             </div>
-            <div class="dispense__actions">
-              <button type="button" id="btn-dispense-start" class="btn btn-primary btn-dispense-start">알약 배출 &amp; 복용 감시 시작</button>
-              <button type="button" id="btn-dispense-stop" class="btn btn-ghost" hidden>중지</button>
+          </div>
+        </section>
+      </main>
+
+      <!-- 우: 캘린더 + 등록 -->
+      <aside class="dash-col dash-col--right">
+        <section class="panel card panel--calendar">
+          <div class="panel__head panel__head--row">
+            <h2 class="panel__title" id="month-label"></h2>
+            <div class="cal-nav">
+              <button type="button" id="btn-prev" class="btn btn-circle btn-sm" aria-label="이전 달">‹</button>
+              <button type="button" id="btn-today" class="btn btn-ghost btn-sm">오늘</button>
+              <button type="button" id="btn-next" class="btn btn-circle btn-sm" aria-label="다음 달">›</button>
             </div>
-            <ol class="dispense__steps">
-              <li id="step-dispense" class="dispense-step">① 알약 배출</li>
-              <li id="step-camera" class="dispense-step">② 카메라 ON</li>
-              <li id="step-detect" class="dispense-step">③ AI 확인</li>
-              <li id="step-done" class="dispense-step">④ 기록 저장</li>
-            </ol>
-          </section>
+          </div>
+          <div class="calendar-compact panel__body">
+            <div class="weekdays" id="weekdays"></div>
+            <div class="grid grid--dash" id="calendar-grid" role="grid"></div>
+            <div class="hint hint--inline">
+              <span class="hint__tag hint__tag--ok">완료</span>
+              <span class="hint__tag hint__tag--miss">미복용</span>
+              <span class="hint__tag hint__tag--none">없음</span>
+            </div>
+          </div>
         </section>
 
-        <!-- 영양제 등록 -->
-        <section class="view-panel view-panel--manage" id="panel-manage" role="tabpanel" aria-labelledby="tab-manage" hidden>
-          <section class="manage card">
-            <div class="manage__head">
-              <h2 class="manage__title">영양제 등록</h2>
-              <p class="manage__desc">이름, 성분, 복용량, 시간을 입력하세요.</p>
+        <section class="panel card panel--grow">
+          <div class="panel__head">
+            <h2 class="panel__title">영양제 등록</h2>
+          </div>
+          <form id="vitamin-form" class="form form--compact panel__body" autocomplete="off">
+            <div class="form-grid">
+              <input id="v-name" name="name" class="field__control" type="text" placeholder="이름" required />
+              <input id="v-dosage" name="dosage" class="field__control" type="text" placeholder="복용량" required />
+              <input id="v-times" name="times" class="field__control" type="text" placeholder="08:00, 21:00" required />
+              <textarea id="v-ingredients" name="ingredients" class="field__control field__control--textarea" rows="2" placeholder="성분" required></textarea>
             </div>
-            <form id="vitamin-form" class="form" autocomplete="off">
-              <div class="form-row">
-                <label class="field">
-                  <span class="field__label">이름</span>
-                  <input id="v-name" name="name" class="field__control" type="text" placeholder="예: 종합비타민" required />
-                </label>
-                <label class="field">
-                  <span class="field__label">복용량</span>
-                  <input id="v-dosage" name="dosage" class="field__control" type="text" placeholder="예: 1정" required />
-                </label>
-              </div>
-              <label class="field">
-                <span class="field__label">성분</span>
-                <textarea id="v-ingredients" name="ingredients" class="field__control field__control--textarea" rows="3" placeholder="예: 비타민 A, C, D…" required></textarea>
-              </label>
-              <label class="field">
-                <span class="field__label">복용 시간</span>
-                <input id="v-times" name="times" class="field__control" type="text" placeholder="예: 08:00, 21:00" required />
-                <span class="field__hint">24시간 형식(HH:mm). 쉼표로 여러 개 입력.</span>
-              </label>
-              <button type="submit" class="btn btn-primary form-submit"><span>등록하기</span></button>
-              <p id="form-msg" class="form-msg" aria-live="polite"></p>
-            </form>
-          </section>
-          <section class="manage card manage-list">
-            <div class="manage__head">
-              <h2 class="manage__title">내 영양제</h2>
-              <p class="manage__desc">등록된 목록을 확인하고 삭제할 수 있습니다.</p>
-            </div>
-            <div id="vitamin-registry" class="registry"></div>
-          </section>
+            <button type="submit" class="btn btn-primary btn-sm">등록</button>
+            <p id="form-msg" class="form-msg form-msg--tiny" aria-live="polite"></p>
+          </form>
+          <div id="vitamin-registry" class="registry registry--compact panel__body"></div>
         </section>
-      </div>
+      </aside>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.4/dist/tf.min.js"></script>

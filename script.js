@@ -406,7 +406,7 @@ function renderDailySummary() {
   const slots = getAllSlots(key);
 
   if (slots.length === 0) {
-    listEl.innerHTML = `<p class="daily-empty">등록된 영양제가 없습니다. 등록 탭에서 추가하세요.</p>`;
+    listEl.innerHTML = `<p class="daily-empty">등록된 영양제가 없습니다. 우측에서 추가하세요.</p>`;
     renderTodaySummary();
     return;
   }
@@ -443,7 +443,7 @@ function renderWeekdays() {
 }
 
 function isMobileCalendar() {
-  return window.matchMedia && window.matchMedia("(max-width: 767px)").matches;
+  return false;
 }
 
 function renderCellStatus(usersEl, ctx) {
@@ -473,7 +473,10 @@ function renderCalendar() {
   syncDayIntakeFromSlots(toDateKey(new Date()));
 
   const label = document.getElementById("month-label");
-  if (label) label.textContent = `${viewYear}년 ${viewMonth + 1}월`;
+  if (label) {
+    label.textContent = `${viewYear}년 ${viewMonth + 1}월`;
+    label.className = "panel__title";
+  }
 
   const grid = document.getElementById("calendar-grid");
   if (!grid) return;
@@ -611,40 +614,6 @@ function setupDispenseSystem() {
   renderDispenseSlots();
 }
 
-function setupViewTabs() {
-  const views = document.getElementById("views");
-  const tabs = [
-    { key: "home", tab: "tab-home", panel: "panel-home" },
-    { key: "calendar", tab: "tab-calendar", panel: "panel-calendar" },
-    { key: "dispense", tab: "tab-dispense", panel: "panel-dispense" },
-    { key: "manage", tab: "tab-manage", panel: "panel-manage" },
-  ];
-
-  function activate(which) {
-    if (!views) return;
-    views.className = `views tab-${which}`;
-    tabs.forEach(({ key, tab, panel }) => {
-      const tabEl = document.getElementById(tab);
-      const panelEl = document.getElementById(panel);
-      if (!tabEl || !panelEl) return;
-      const on = key === which;
-      tabEl.classList.toggle("view-tab--active", on);
-      tabEl.setAttribute("aria-selected", String(on));
-      if (on) panelEl.removeAttribute("hidden");
-      else panelEl.setAttribute("hidden", "");
-    });
-    if (which === "dispense") renderDispenseSlots();
-    if (which === "home") renderDailySummary();
-  }
-
-  tabs.forEach(({ key, tab }) => {
-    const el = document.getElementById(tab);
-    if (el) el.addEventListener("click", () => activate(key));
-  });
-
-  activate("home");
-}
-
 function renderManage() {
   const registry = document.getElementById("vitamin-registry");
   if (!registry) return;
@@ -655,20 +624,12 @@ function renderManage() {
   }
 
   registry.innerHTML = VITAMINS.map(
-    (v) => `<div class="reg-item" data-id="${escapeHtml(v.id)}">
+    (v) => `<div class="reg-item reg-item--compact" data-id="${escapeHtml(v.id)}">
       <div class="reg-item__main">
-        <div class="reg-item__top">
-          <strong class="reg-name">${escapeHtml(v.name)}</strong>
-          <span class="reg-dose">${escapeHtml(v.dosage)}</span>
-        </div>
-        <p class="reg-ing">${escapeHtml(v.ingredients)}</p>
-        <label class="reg-times-edit">
-          <span class="reg-times-edit__label">복용 시간</span>
-          <input class="field__control reg-times-input" type="text" value="${escapeHtml(formatTimes(v.times))}" data-times-edit="${escapeHtml(v.id)}" />
-        </label>
-        <button type="button" class="reg-save-times" data-save-times="${escapeHtml(v.id)}">시간 저장</button>
+        <strong class="reg-name">${escapeHtml(v.name)}</strong>
+        <span class="reg-dose">${escapeHtml(v.dosage)} · ${escapeHtml(formatTimes(v.times))}</span>
       </div>
-      <button type="button" class="reg-del" data-del="${escapeHtml(v.id)}" aria-label="삭제">삭제</button>
+      <button type="button" class="reg-del reg-del--sm" data-del="${escapeHtml(v.id)}" aria-label="삭제">×</button>
     </div>`
   ).join("");
 
@@ -683,28 +644,6 @@ function renderManage() {
       renderCalendar();
       renderDispenseSlots();
       rescheduleNotifications();
-    });
-  });
-
-  registry.querySelectorAll("[data-save-times]").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const id = btn.getAttribute("data-save-times");
-      if (!id) return;
-      const input = registry.querySelector(`[data-times-edit="${id}"]`);
-      const times = parseTimesInput(input?.value || "");
-      if (times.length === 0) {
-        alert("복용 시간을 HH:mm 형식으로 입력해 주세요.");
-        return;
-      }
-      const v = VITAMINS.find((x) => x.id === id);
-      if (v) {
-        v.times = times;
-        saveVitamins();
-        renderManage();
-        renderDailySummary();
-        renderDispenseSlots();
-        rescheduleNotifications();
-      }
     });
   });
 }
@@ -1029,7 +968,6 @@ loadNotifySent();
 renderWeekdays();
 renderCalendar();
 renderDailySummary();
-setupViewTabs();
 setupDispenseSystem();
 renderManage();
 setupVitaminForm();

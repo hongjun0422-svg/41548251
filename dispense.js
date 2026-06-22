@@ -76,7 +76,7 @@
 
     canvasEl = document.createElement("canvas");
     canvasEl.width = 640;
-    canvasEl.height = 480;
+    canvasEl.height = 360;
     canvasEl.id = "dispense-canvas";
     host.innerHTML = "";
     host.appendChild(canvasEl);
@@ -243,7 +243,7 @@
     document.body.appendChild(videoEl);
 
     mediaStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "user", width: 640, height: 480 },
+      video: { facingMode: "user", width: 640, height: 360 },
       audio: false,
     });
 
