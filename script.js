@@ -41,6 +41,7 @@ const NOTIFY_SENT_KEY = "vitaminNotifySent";
 const PROFILES_KEY = "pillcareProfiles";
 const LEGACY_MIGRATED_KEY = "pillcareLegacyMigrated";
 const PI_URL_LEGACY_KEY = "dispensePiUrl";
+const VIEW_TAB_KEY = "appViewTab";
 
 /** @type {string | null} */
 let activeProfileId = null;
@@ -289,7 +290,7 @@ function renderProfileList(profiles) {
     nameSpan.textContent = profile.name;
     const hint = document.createElement("span");
     hint.className = "profile-item__hint";
-    hint.textContent = "선택 →";
+    hint.textContent = "캘린더 →";
     selectBtn.appendChild(nameSpan);
     selectBtn.appendChild(hint);
     selectBtn.addEventListener("click", () => enterProfile(profile.id));
@@ -379,6 +380,7 @@ function enterProfile(profileId) {
   showDashboard();
   updateDashboardProfileTitle(profile);
   refreshDashboardForProfile();
+  if (switchAppView) switchAppView("home");
 }
 
 function exitToProfileGate() {
@@ -407,17 +409,6 @@ function refreshDashboardForProfile() {
     window.DispenseSystem.reloadPiUrlField();
   }
   rescheduleNotifications();
-  if (switchAppView) switchAppView(getSavedViewTab());
-}
-
-function getSavedViewTab() {
-  let saved = "home";
-  try {
-    saved = localStorage.getItem(scopedKey(VIEW_TAB_KEY)) || "home";
-  } catch {
-    // ignore
-  }
-  return saved === "ai" || saved === "manage" ? saved : "home";
 }
 
 function bootstrapDashboardOnce() {
@@ -1287,6 +1278,18 @@ function startNotificationScheduler() {
   checkNotificationsBackup();
 }
 
+function syncNotifySettingsUI() {
+  const enabled = document.getElementById("notify-enabled");
+  const intake = document.getElementById("notify-intake");
+  const missed = document.getElementById("notify-missed");
+  const delay = document.getElementById("notify-delay");
+  if (!enabled || !intake || !missed || !delay) return;
+  enabled.checked = NOTIFY_SETTINGS.enabled;
+  intake.checked = NOTIFY_SETTINGS.intakeReminder;
+  missed.checked = NOTIFY_SETTINGS.missedReminder;
+  delay.value = String(NOTIFY_SETTINGS.missedDelayMinutes);
+}
+
 function setupNotifySettings() {
   const enabled = document.getElementById("notify-enabled");
   const intake = document.getElementById("notify-intake");
@@ -1296,10 +1299,7 @@ function setupNotifySettings() {
   const status = document.getElementById("notify-status");
   if (!enabled || !intake || !missed || !delay) return;
 
-  enabled.checked = NOTIFY_SETTINGS.enabled;
-  intake.checked = NOTIFY_SETTINGS.intakeReminder;
-  missed.checked = NOTIFY_SETTINGS.missedReminder;
-  delay.value = String(NOTIFY_SETTINGS.missedDelayMinutes);
+  syncNotifySettingsUI();
 
   function updateStatus() {
     if (!status) return;
@@ -1359,7 +1359,6 @@ function setupNotifySettings() {
   updateStatus();
 }
 
-const VIEW_TAB_KEY = "appViewTab";
 const TEST_SLOT_VALUE = "__test__|test";
 /** @type {((name: string) => void) | null} */
 let switchAppView = null;
@@ -1455,7 +1454,7 @@ function setupViewTabs() {
     });
     if (sub) sub.textContent = SUBS[view];
     try {
-      localStorage.setItem(VIEW_TAB_KEY, view);
+      if (activeProfileId) localStorage.setItem(scopedKey(VIEW_TAB_KEY), view);
     } catch {
       // ignore
     }
@@ -1472,39 +1471,15 @@ function setupViewTabs() {
   tabs.forEach((btn) => {
     btn.addEventListener("click", () => setView(btn.getAttribute("data-view")));
   });
-
-  let saved = "home";
-  try {
-    saved = localStorage.getItem(VIEW_TAB_KEY) || "home";
-  } catch {
-    // ignore
-  }
-  setView(saved === "ai" || saved === "manage" ? saved : "home");
 }
 
-purgeFutureIntakeLogs();
 setupThemeToggle();
-setupViewTabs();
-setupDailyListActions();
-loadVitamins();
-loadSlotLog();
-loadNotifySettings();
-loadNotifySent();
-renderWeekdays();
-renderCalendar();
-renderDailySummary();
-setupDispenseSystem();
-renderManage();
-setupVitaminForm();
-setupNotifySettings();
-startNotificationScheduler();
+bootstrapDashboardOnce();
+setupProfileGate();
+showProfileGate();
 
-document.getElementById("btn-prev")?.addEventListener("click", () => goMonth(-1));
-document.getElementById("btn-next")?.addEventListener("click", () => goMonth(1));
-document.getElementById("btn-today")?.addEventListener("click", goToday);
-
-let calendarResizeTimer;
-window.addEventListener("resize", () => {
-  clearTimeout(calendarResizeTimer);
-  calendarResizeTimer = setTimeout(renderCalendar, 160);
-});
+window.PillCare = {
+  getStorageSuffix() {
+    return activeProfileId ? `__${activeProfileId}` : "";
+  },
+};

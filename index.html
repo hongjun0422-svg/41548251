@@ -32,14 +32,18 @@
           </div>
         </div>
         <p class="profile-gate__desc">프로필마다 영양제·복용 시간·캘린더·알림이 따로 저장됩니다.</p>
-        <ul id="profile-list" class="profile-list" aria-label="프로필 목록"></ul>
-        <form id="profile-add-form" class="profile-add" autocomplete="off">
+        <form id="profile-add-form" class="profile-add profile-add--top" autocomplete="off">
           <label class="field">
             <span class="field__label">새 프로필</span>
             <input id="profile-name-input" class="field__control" type="text" maxlength="20" placeholder="예: 엄마, 아빠" required />
           </label>
           <button type="submit" class="btn btn-primary">프로필 추가</button>
         </form>
+        <section class="profile-gate__saved" aria-labelledby="profile-saved-title">
+          <h2 id="profile-saved-title" class="profile-gate__saved-title">생성된 프로필</h2>
+          <p class="profile-gate__saved-hint">프로필을 누르면 복용 관리(캘린더) 화면으로 이동합니다.</p>
+          <ul id="profile-list" class="profile-list" aria-label="생성된 프로필 목록"></ul>
+        </section>
       </div>
     </div>
 
