@@ -36,6 +36,19 @@ body {
   background: linear-gradient(160deg, var(--bg) 0%, var(--bg2) 50%, #e0f2fe 100%);
 }
 
+body.app-screen--gate #dashboard {
+  display: none !important;
+}
+body.app-screen--gate #profile-gate {
+  display: flex !important;
+}
+body.app-screen--dashboard #profile-gate {
+  display: none !important;
+}
+body.app-screen--dashboard #dashboard {
+  display: grid !important;
+}
+
 .bg-pattern {
   position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.35;
   background-image: radial-gradient(circle at 15% 15%, rgba(13,148,136,.14) 0%, transparent 40%),

@@ -46,6 +46,9 @@ const VIEW_TAB_KEY = "appViewTab";
 /** @type {string | null} */
 let activeProfileId = null;
 
+/** @type {((name: string) => void) | null} */
+let switchAppView = null;
+
 /** @param {string} base */
 function scopedKey(base) {
   if (!activeProfileId) return base;
@@ -251,6 +254,8 @@ function updateDashboardProfileTitle(profile) {
 }
 
 function showProfileGate() {
+  document.body.classList.remove("app-screen--dashboard");
+  document.body.classList.add("app-screen--gate");
   const gate = document.getElementById("profile-gate");
   const dash = document.getElementById("dashboard");
   if (gate) gate.hidden = false;
@@ -258,10 +263,42 @@ function showProfileGate() {
 }
 
 function showDashboard() {
+  document.body.classList.remove("app-screen--gate");
+  document.body.classList.add("app-screen--dashboard");
   const gate = document.getElementById("profile-gate");
   const dash = document.getElementById("dashboard");
   if (gate) gate.hidden = true;
-  if (dash) dash.hidden = false;
+  if (dash) {
+    dash.hidden = false;
+    dash.removeAttribute("hidden");
+  }
+}
+
+/** 복용 관리(캘린더) 탭 — switchAppView 없을 때 DOM 직접 전환 */
+function goToHomeView() {
+  if (switchAppView) {
+    switchAppView("home");
+    return;
+  }
+  const views = {
+    home: document.getElementById("view-home"),
+    ai: document.getElementById("view-ai"),
+    manage: document.getElementById("view-manage"),
+  };
+  Object.entries(views).forEach(([key, el]) => {
+    if (!el) return;
+    const active = key === "home";
+    el.hidden = !active;
+    el.classList.toggle("dash-view--active", active);
+  });
+  document.querySelectorAll(".view-tab").forEach((btn) => {
+    const active = btn.getAttribute("data-view") === "home";
+    btn.classList.toggle("view-tab--active", active);
+    btn.setAttribute("aria-selected", active ? "true" : "false");
+  });
+  const sub = document.getElementById("dash-header-sub");
+  if (sub) sub.textContent = "오늘 복용 · 월간 캘린더";
+  renderCalendar();
 }
 
 /** @param {UserProfile[]} profiles */
@@ -293,20 +330,17 @@ function renderProfileList(profiles) {
     hint.textContent = "캘린더 →";
     selectBtn.appendChild(nameSpan);
     selectBtn.appendChild(hint);
-    selectBtn.addEventListener("click", () => enterProfile(profile.id));
 
     li.appendChild(selectBtn);
+    li.setAttribute("data-profile-id", profile.id);
 
     if (profiles.length > 1) {
       const delBtn = document.createElement("button");
       delBtn.type = "button";
       delBtn.className = "profile-item__delete";
       delBtn.textContent = "삭제";
+      delBtn.setAttribute("data-profile-id", profile.id);
       delBtn.setAttribute("aria-label", `${profile.name} 프로필 삭제`);
-      delBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        deleteProfile(profile.id);
-      });
       li.appendChild(delBtn);
     }
 
@@ -361,17 +395,28 @@ function deleteProfile(profileId) {
 
 /** @param {string} profileId */
 function enterProfile(profileId) {
-  const profiles = loadProfiles();
-  const profile = profiles.find((p) => p.id === profileId);
-  if (!profile) return;
+  const id = String(profileId || "");
+  if (!id) return;
 
-  if (activeProfileId && activeProfileId !== profileId) {
-    window.DispenseSystem?.stop?.();
+  const profiles = loadProfiles();
+  const profile = profiles.find((p) => String(p.id) === id);
+  if (!profile) {
+    window.alert("프로필을 찾을 수 없습니다. 목록을 새로고침합니다.");
+    renderProfileList(profiles);
+    return;
   }
 
-  activeProfileId = profileId;
+  if (activeProfileId && activeProfileId !== id) {
+    try {
+      window.DispenseSystem?.stop?.();
+    } catch {
+      // ignore
+    }
+  }
+
+  activeProfileId = id;
   try {
-    localStorage.setItem("pillcareLastProfileId", profileId);
+    localStorage.setItem("pillcareLastProfileId", id);
   } catch {
     // ignore
   }
@@ -379,8 +424,13 @@ function enterProfile(profileId) {
   clearProfileMemory();
   showDashboard();
   updateDashboardProfileTitle(profile);
-  refreshDashboardForProfile();
-  if (switchAppView) switchAppView("home");
+
+  try {
+    refreshDashboardForProfile();
+  } catch (err) {
+    console.error("프로필 데이터 로드 중 오류:", err);
+  }
+  goToHomeView();
 }
 
 function exitToProfileGate() {
@@ -457,6 +507,26 @@ function setupProfileGate() {
   });
 
   document.getElementById("btn-switch-profile")?.addEventListener("click", exitToProfileGate);
+
+  const list = document.getElementById("profile-list");
+  if (list && !list.dataset.clickBound) {
+    list.dataset.clickBound = "1";
+    list.addEventListener("click", (e) => {
+      const delBtn = e.target.closest(".profile-item__delete");
+      if (delBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const delId = delBtn.getAttribute("data-profile-id");
+        if (delId) deleteProfile(delId);
+        return;
+      }
+      const selectBtn = e.target.closest(".profile-item__select");
+      if (!selectBtn) return;
+      e.preventDefault();
+      const pid = selectBtn.getAttribute("data-profile-id");
+      if (pid) enterProfile(pid);
+    });
+  }
 }
 
 function loadVitamins() {
@@ -1360,8 +1430,6 @@ function setupNotifySettings() {
 }
 
 const TEST_SLOT_VALUE = "__test__|test";
-/** @type {((name: string) => void) | null} */
-let switchAppView = null;
 
 function updateDispenseSlotDisplay() {
   const input = document.getElementById("dispense-slot");
@@ -1473,13 +1541,20 @@ function setupViewTabs() {
   });
 }
 
-setupThemeToggle();
-bootstrapDashboardOnce();
-setupProfileGate();
-showProfileGate();
-
 window.PillCare = {
   getStorageSuffix() {
     return activeProfileId ? `__${activeProfileId}` : "";
   },
+  enterProfile,
 };
+
+try {
+  setupThemeToggle();
+  bootstrapDashboardOnce();
+  setupProfileGate();
+  showProfileGate();
+} catch (err) {
+  console.error("앱 초기화 오류:", err);
+  const gate = document.getElementById("profile-gate");
+  if (gate) gate.hidden = false;
+}
