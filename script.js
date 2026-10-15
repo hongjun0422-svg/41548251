@@ -715,29 +715,25 @@ function syncDayIntakeFromSlots(dateKey) {
   else delete INTAKE_LOG[dateKey];
 }
 
-/** @param {string} dateKey @returns {"ok"|"miss"|"none"} */
+/** @param {string} dateKey @returns {"ok"|"miss"} */
 function getDayStatus(dateKey) {
   syncDayIntakeFromSlots(dateKey);
-  if (!(dateKey in INTAKE_LOG)) return "none";
-  return INTAKE_LOG[dateKey] ? "ok" : "miss";
+  if (INTAKE_LOG[dateKey] === true) return "ok";
+  return "miss";
 }
 
-/** @param {"ok"|"miss"|"none"} status */
+/** @param {"ok"|"miss"} status */
 function statusIconSvg(status) {
   if (status === "ok") {
     return `<svg class="state-ico state-ico--ok" width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
   }
-  if (status === "miss") {
-    return `<svg class="state-ico state-ico--miss" width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`;
-  }
-  return `<svg class="state-ico state-ico--none" width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8" stroke-dasharray="3.5 3"/></svg>`;
+  return "";
 }
 
-/** @param {"ok"|"miss"|"none"} s */
+/** @param {"ok"|"miss"} s */
 function labelStatus(s) {
   if (s === "ok") return "완료";
-  if (s === "miss") return "미복용";
-  return "기록 없음";
+  return "미복용";
 }
 
 function ensureMonthSample(year, monthIndex) {
@@ -856,12 +852,16 @@ function renderCellStatus(usersEl, ctx) {
     return;
   }
 
-  const status = outside ? "none" : key === todayKey ? getDayStatus(key) : getDayStatus(key);
+  const status = getDayStatus(key);
   const badge = document.createElement("div");
   badge.className = `cell-status cell-status--${status}`;
   badge.title = labelStatus(status);
   badge.setAttribute("aria-label", labelStatus(status));
-  badge.innerHTML = statusIconSvg(status);
+  if (status === "ok") {
+    badge.innerHTML = statusIconSvg(status);
+  } else {
+    badge.textContent = "미복용";
+  }
   usersEl.appendChild(badge);
 }
 
@@ -943,7 +943,7 @@ function renderCalendar() {
 
     if (!outside && !futureDay) {
       const dayStatus = getDayStatus(key);
-      if (dayStatus === "ok" || dayStatus === "miss") cell.classList.add(`cell--${dayStatus}`);
+      cell.classList.add(dayStatus === "ok" ? "cell--ok" : "cell--miss");
     }
     frag.appendChild(cell);
   });

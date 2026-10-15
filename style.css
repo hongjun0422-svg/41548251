@@ -325,11 +325,22 @@ html[data-theme="dark"] .view-tab--active { background: rgba(255,255,255,.08); b
 }
 
 .cell-status--ok { background: var(--ok-bg); color: var(--ok); border: 1.5px solid rgba(5,150,105,.35); }
-.cell-status--miss { background: var(--miss-bg); color: var(--miss); border: 1.5px solid rgba(225,29,72,.3); }
-.cell-status--none { background: var(--none-bg); color: var(--none); border: 1.5px solid rgba(148,163,184,.28); }
+.grid--dash .cell-status--miss {
+  width: auto;
+  min-width: 2.6rem;
+  height: auto;
+  padding: 2px 6px;
+  background: #ffffff;
+  color: var(--text);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
 
 .grid--dash .cell--ok { background: #f0fdf4; border-color: rgba(5,150,105,.25); }
-.grid--dash .cell--miss { background: #fff1f2; border-color: rgba(225,29,72,.22); }
+.grid--dash .cell--miss { background: #ffffff; border-color: rgba(148, 163, 184, 0.28); }
 .slot-row--clickable {
   width: 100%; text-align: left; font: inherit; color: inherit; cursor: pointer;
   transition: border-color .15s, box-shadow .15s, transform .1s;
@@ -382,8 +393,7 @@ html[data-theme="dark"] .confirm-backdrop { background: rgba(0,0,0,.55); }
 .hint--inline { display: flex; gap: 8px; margin-top: 8px; justify-content: center; flex-shrink: 0; }
 .hint__tag { font-size: .68rem; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
 .hint__tag--ok { color: var(--ok); background: var(--ok-bg); }
-.hint__tag--miss { color: var(--miss); background: var(--miss-bg); }
-.hint__tag--none { color: var(--none); background: var(--none-bg); }
+.hint__tag--miss { color: var(--text); background: #ffffff; border: 1px solid rgba(148, 163, 184, 0.35); }
 
 .field { display: flex; flex-direction: column; gap: 3px; }
 .field__label { font-size: .68rem; font-weight: 800; color: var(--muted); text-transform: uppercase; }
@@ -468,7 +478,17 @@ html[data-theme="dark"] .grid--dash .cell--outside { background: rgba(255,255,25
 html[data-theme="dark"] .grid--dash .cell--outside .cell-date { color: #64748b; }
 html[data-theme="dark"] .grid--dash .cell--today { background: rgba(13,148,136,.12); }
 html[data-theme="dark"] .grid--dash .cell--ok { background: rgba(5,150,105,.1); }
-html[data-theme="dark"] .grid--dash .cell--miss { background: rgba(225,29,72,.1); }
+html[data-theme="dark"] .grid--dash .cell--miss { background: rgba(255, 255, 255, 0.08); border-color: rgba(148, 163, 184, 0.22); }
+html[data-theme="dark"] .grid--dash .cell-status--miss {
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
+  border-color: rgba(148, 163, 184, 0.28);
+}
+html[data-theme="dark"] .hint__tag--miss {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
 html[data-theme="dark"] .weekday { background: rgba(255,255,255,.06); color: #cbd5e1; }
 html[data-theme="dark"] .weekday--end { background: rgba(194,65,12,.12); color: #fb923c; }
 html[data-theme="dark"] .today-summary__progress::after { background: rgba(15,23,42,.9); }
