@@ -74,6 +74,11 @@
     return label === INTAKE_LABEL && confidence > CONFIDENCE_THRESHOLD;
   }
 
+  function piUrlStorageKey() {
+    const suffix = window.PillCare?.getStorageSuffix?.() || "";
+    return PI_URL_STORAGE_KEY + suffix;
+  }
+
   function normalizePiUrl(raw) {
     let url = (raw || "").trim();
     if (!url) return DEFAULT_PI_URL;
@@ -86,7 +91,7 @@
     const fromInput = input && input.value.trim();
     if (fromInput) return normalizePiUrl(fromInput);
     try {
-      const saved = localStorage.getItem(PI_URL_STORAGE_KEY);
+      const saved = localStorage.getItem(piUrlStorageKey());
       if (saved) return normalizePiUrl(saved);
     } catch (e) {
       // ignore
@@ -116,7 +121,7 @@
 
     let initial = DEFAULT_PI_URL;
     try {
-      const saved = localStorage.getItem(PI_URL_STORAGE_KEY);
+      const saved = localStorage.getItem(piUrlStorageKey());
       if (saved) initial = normalizePiUrl(saved);
     } catch (e) {
       // ignore
@@ -226,7 +231,7 @@
 
   function savePiUrl(url) {
     try {
-      localStorage.setItem(PI_URL_STORAGE_KEY, url);
+      localStorage.setItem(piUrlStorageKey(), url);
     } catch (e) {
       // ignore
     }
@@ -779,5 +784,6 @@
       if (piInput) piInput.value = normalized;
       savePiUrl(normalized);
     },
+    reloadPiUrlField: initPiUrlField,
   };
 })();

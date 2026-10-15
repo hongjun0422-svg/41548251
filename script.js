@@ -1,5 +1,6 @@
 /**
- * 1인용 복용 관리 앱
+ * 다중 프로필 복용 관리 앱
+ * @typedef {{ id: string; name: string; createdAt?: number }} UserProfile
  * @typedef {{ id: string; name: string; ingredients: string; dosage: string; times: string[] }} Vitamin
  * @typedef {{ enabled: boolean; intakeReminder: boolean; missedReminder: boolean; missedDelayMinutes: number }} NotifySettings
  */
@@ -37,6 +38,18 @@ const VITAMIN_STORAGE_KEY = "vitaminRegistry";
 const SLOT_LOG_KEY = "vitaminSlotLog";
 const NOTIFY_SETTINGS_KEY = "vitaminNotifySettings";
 const NOTIFY_SENT_KEY = "vitaminNotifySent";
+const PROFILES_KEY = "pillcareProfiles";
+const LEGACY_MIGRATED_KEY = "pillcareLegacyMigrated";
+const PI_URL_LEGACY_KEY = "dispensePiUrl";
+
+/** @type {string | null} */
+let activeProfileId = null;
+
+/** @param {string} base */
+function scopedKey(base) {
+  if (!activeProfileId) return base;
+  return `${base}__${activeProfileId}`;
+}
 
 /** @type {number[]} */
 let NOTIFY_TIMERS = [];
@@ -140,9 +153,324 @@ function defaultVitamins() {
   ];
 }
 
+/** @returns {UserProfile[]} */
+function loadProfiles() {
+  try {
+    const raw = localStorage.getItem(PROFILES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((p) => p && typeof p === "object" && p.id && p.name)
+      .map((p) => ({
+        id: String(p.id),
+        name: String(p.name).trim().slice(0, 20),
+        createdAt: Number(p.createdAt) || Date.now(),
+      }))
+      .filter((p) => p.name);
+  } catch {
+    return [];
+  }
+}
+
+/** @param {UserProfile[]} profiles */
+function saveProfiles(profiles) {
+  try {
+    localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
+  } catch {
+    // ignore
+  }
+}
+
+function migrateLegacyStorageToProfiles() {
+  try {
+    if (localStorage.getItem(LEGACY_MIGRATED_KEY)) return;
+  } catch {
+    return;
+  }
+
+  const legacyKeys = [
+    VITAMIN_STORAGE_KEY,
+    SLOT_LOG_KEY,
+    NOTIFY_SETTINGS_KEY,
+    NOTIFY_SENT_KEY,
+    PI_URL_LEGACY_KEY,
+  ];
+  const hasLegacy = legacyKeys.some((k) => {
+    try {
+      return !!localStorage.getItem(k);
+    } catch {
+      return false;
+    }
+  });
+
+  let profiles = loadProfiles();
+  if (!profiles.length) {
+    profiles = [{ id: uuid(), name: "나", createdAt: Date.now() }];
+    saveProfiles(profiles);
+  }
+
+  if (hasLegacy) {
+    const targetId = profiles[0].id;
+    legacyKeys.forEach((base) => {
+      try {
+        const val = localStorage.getItem(base);
+        if (val != null) localStorage.setItem(`${base}__${targetId}`, val);
+      } catch {
+        // ignore
+      }
+    });
+  }
+
+  try {
+    localStorage.setItem(LEGACY_MIGRATED_KEY, "1");
+  } catch {
+    // ignore
+  }
+}
+
+function clearProfileMemory() {
+  VITAMINS = [];
+  for (const k of Object.keys(SLOT_LOG)) delete SLOT_LOG[k];
+  for (const k of Object.keys(INTAKE_LOG)) delete INTAKE_LOG[k];
+  NOTIFY_SENT_TODAY = {};
+  NOTIFY_SETTINGS = {
+    enabled: true,
+    intakeReminder: true,
+    missedReminder: true,
+    missedDelayMinutes: 30,
+  };
+}
+
+/** @param {UserProfile | undefined} profile */
+function updateDashboardProfileTitle(profile) {
+  const title = document.getElementById("dash-profile-title");
+  if (!title) return;
+  title.textContent = profile ? `${profile.name}님의 복용 관리` : "복용 관리";
+}
+
+function showProfileGate() {
+  const gate = document.getElementById("profile-gate");
+  const dash = document.getElementById("dashboard");
+  if (gate) gate.hidden = false;
+  if (dash) dash.hidden = true;
+}
+
+function showDashboard() {
+  const gate = document.getElementById("profile-gate");
+  const dash = document.getElementById("dashboard");
+  if (gate) gate.hidden = true;
+  if (dash) dash.hidden = false;
+}
+
+/** @param {UserProfile[]} profiles */
+function renderProfileList(profiles) {
+  const list = document.getElementById("profile-list");
+  if (!list) return;
+  list.innerHTML = "";
+
+  if (!profiles.length) {
+    const empty = document.createElement("li");
+    empty.className = "profile-gate__desc";
+    empty.textContent = "프로필을 추가한 뒤 선택해 주세요.";
+    list.appendChild(empty);
+    return;
+  }
+
+  profiles.forEach((profile) => {
+    const li = document.createElement("li");
+    li.className = "profile-item";
+
+    const selectBtn = document.createElement("button");
+    selectBtn.type = "button";
+    selectBtn.className = "profile-item__select";
+    selectBtn.setAttribute("data-profile-id", profile.id);
+    const nameSpan = document.createElement("span");
+    nameSpan.textContent = profile.name;
+    const hint = document.createElement("span");
+    hint.className = "profile-item__hint";
+    hint.textContent = "선택 →";
+    selectBtn.appendChild(nameSpan);
+    selectBtn.appendChild(hint);
+    selectBtn.addEventListener("click", () => enterProfile(profile.id));
+
+    li.appendChild(selectBtn);
+
+    if (profiles.length > 1) {
+      const delBtn = document.createElement("button");
+      delBtn.type = "button";
+      delBtn.className = "profile-item__delete";
+      delBtn.textContent = "삭제";
+      delBtn.setAttribute("aria-label", `${profile.name} 프로필 삭제`);
+      delBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        deleteProfile(profile.id);
+      });
+      li.appendChild(delBtn);
+    }
+
+    list.appendChild(li);
+  });
+}
+
+/** @param {string} profileId */
+function deleteProfileDataKeys(profileId) {
+  const suffix = `__${profileId}`;
+  const bases = [
+    VITAMIN_STORAGE_KEY,
+    SLOT_LOG_KEY,
+    NOTIFY_SETTINGS_KEY,
+    NOTIFY_SENT_KEY,
+    PI_URL_LEGACY_KEY,
+    VIEW_TAB_KEY,
+  ];
+  bases.forEach((base) => {
+    try {
+      localStorage.removeItem(base + suffix);
+    } catch {
+      // ignore
+    }
+  });
+}
+
+/** @param {string} profileId */
+function deleteProfile(profileId) {
+  let profiles = loadProfiles();
+  const target = profiles.find((p) => p.id === profileId);
+  if (!target) return;
+  if (
+    !window.confirm(
+      `「${target.name}」 프로필과 저장된 영양제·복용 기록을 모두 삭제할까요? 되돌릴 수 없습니다.`
+    )
+  ) {
+    return;
+  }
+
+  if (activeProfileId === profileId) {
+    window.DispenseSystem?.stop?.();
+    activeProfileId = null;
+    clearProfileMemory();
+  }
+
+  deleteProfileDataKeys(profileId);
+  profiles = profiles.filter((p) => p.id !== profileId);
+  saveProfiles(profiles);
+  renderProfileList(profiles);
+}
+
+/** @param {string} profileId */
+function enterProfile(profileId) {
+  const profiles = loadProfiles();
+  const profile = profiles.find((p) => p.id === profileId);
+  if (!profile) return;
+
+  if (activeProfileId && activeProfileId !== profileId) {
+    window.DispenseSystem?.stop?.();
+  }
+
+  activeProfileId = profileId;
+  try {
+    localStorage.setItem("pillcareLastProfileId", profileId);
+  } catch {
+    // ignore
+  }
+
+  clearProfileMemory();
+  showDashboard();
+  updateDashboardProfileTitle(profile);
+  refreshDashboardForProfile();
+}
+
+function exitToProfileGate() {
+  window.DispenseSystem?.stop?.();
+  activeProfileId = null;
+  clearProfileMemory();
+  showProfileGate();
+  renderProfileList(loadProfiles());
+}
+
+let dashboardBootstrapped = false;
+
+function refreshDashboardForProfile() {
+  purgeFutureIntakeLogs();
+  loadVitamins();
+  loadSlotLog();
+  loadNotifySettings();
+  loadNotifySent();
+  syncNotifySettingsUI();
+  renderWeekdays();
+  renderCalendar();
+  renderDailySummary();
+  renderManage();
+  renderDispenseSlots();
+  if (window.DispenseSystem?.reloadPiUrlField) {
+    window.DispenseSystem.reloadPiUrlField();
+  }
+  rescheduleNotifications();
+  if (switchAppView) switchAppView(getSavedViewTab());
+}
+
+function getSavedViewTab() {
+  let saved = "home";
+  try {
+    saved = localStorage.getItem(scopedKey(VIEW_TAB_KEY)) || "home";
+  } catch {
+    // ignore
+  }
+  return saved === "ai" || saved === "manage" ? saved : "home";
+}
+
+function bootstrapDashboardOnce() {
+  if (dashboardBootstrapped) return;
+  dashboardBootstrapped = true;
+  setupViewTabs();
+  setupDailyListActions();
+  setupDispenseSystem();
+  setupVitaminForm();
+  setupNotifySettings();
+  startNotificationScheduler();
+  document.getElementById("btn-prev")?.addEventListener("click", () => goMonth(-1));
+  document.getElementById("btn-next")?.addEventListener("click", () => goMonth(1));
+  document.getElementById("btn-today")?.addEventListener("click", goToday);
+  let calendarResizeTimer;
+  window.addEventListener("resize", () => {
+    clearTimeout(calendarResizeTimer);
+    calendarResizeTimer = setTimeout(renderCalendar, 160);
+  });
+}
+
+function setupProfileGate() {
+  migrateLegacyStorageToProfiles();
+  let profiles = loadProfiles();
+  if (!profiles.length) {
+    profiles = [{ id: uuid(), name: "나", createdAt: Date.now() }];
+    saveProfiles(profiles);
+  }
+  renderProfileList(profiles);
+
+  const form = document.getElementById("profile-add-form");
+  const input = document.getElementById("profile-name-input");
+  form?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const name = (input?.value || "").trim().slice(0, 20);
+    if (!name) return;
+    const profilesNow = loadProfiles();
+    if (profilesNow.some((p) => p.name === name)) {
+      window.alert("같은 이름의 프로필이 이미 있습니다.");
+      return;
+    }
+    profilesNow.push({ id: uuid(), name, createdAt: Date.now() });
+    saveProfiles(profilesNow);
+    if (input) input.value = "";
+    renderProfileList(profilesNow);
+  });
+
+  document.getElementById("btn-switch-profile")?.addEventListener("click", exitToProfileGate);
+}
+
 function loadVitamins() {
   try {
-    const raw = localStorage.getItem(VITAMIN_STORAGE_KEY);
+    const raw = localStorage.getItem(scopedKey(VITAMIN_STORAGE_KEY));
     if (!raw) {
       VITAMINS = defaultVitamins();
       saveVitamins();
@@ -181,15 +509,16 @@ function loadVitamins() {
 
 function saveVitamins() {
   try {
-    localStorage.setItem(VITAMIN_STORAGE_KEY, JSON.stringify(VITAMINS));
+    localStorage.setItem(scopedKey(VITAMIN_STORAGE_KEY), JSON.stringify(VITAMINS));
   } catch {
     // ignore
   }
 }
 
 function loadSlotLog() {
+  for (const k of Object.keys(SLOT_LOG)) delete SLOT_LOG[k];
   try {
-    const raw = localStorage.getItem(SLOT_LOG_KEY);
+    const raw = localStorage.getItem(scopedKey(SLOT_LOG_KEY));
     if (!raw) return;
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed === "object") {
@@ -204,7 +533,7 @@ function loadSlotLog() {
 
 function saveSlotLog() {
   try {
-    localStorage.setItem(SLOT_LOG_KEY, JSON.stringify(SLOT_LOG));
+    localStorage.setItem(scopedKey(SLOT_LOG_KEY), JSON.stringify(SLOT_LOG));
   } catch {
     // ignore
   }
@@ -212,7 +541,7 @@ function saveSlotLog() {
 
 function loadNotifySettings() {
   try {
-    const raw = localStorage.getItem(NOTIFY_SETTINGS_KEY);
+    const raw = localStorage.getItem(scopedKey(NOTIFY_SETTINGS_KEY));
     if (!raw) return;
     const p = JSON.parse(raw);
     NOTIFY_SETTINGS = {
@@ -228,16 +557,17 @@ function loadNotifySettings() {
 
 function saveNotifySettings() {
   try {
-    localStorage.setItem(NOTIFY_SETTINGS_KEY, JSON.stringify(NOTIFY_SETTINGS));
+    localStorage.setItem(scopedKey(NOTIFY_SETTINGS_KEY), JSON.stringify(NOTIFY_SETTINGS));
   } catch {
     // ignore
   }
 }
 
 function loadNotifySent() {
+  NOTIFY_SENT_TODAY = {};
   const today = toDateKey(new Date());
   try {
-    const raw = localStorage.getItem(NOTIFY_SENT_KEY);
+    const raw = localStorage.getItem(scopedKey(NOTIFY_SENT_KEY));
     if (!raw) return;
     const all = JSON.parse(raw);
     NOTIFY_SENT_TODAY = all[today] && Array.isArray(all[today]) ? { [today]: all[today] } : {};
@@ -249,10 +579,10 @@ function loadNotifySent() {
 function saveNotifySent() {
   const today = toDateKey(new Date());
   try {
-    const raw = localStorage.getItem(NOTIFY_SENT_KEY);
+    const raw = localStorage.getItem(scopedKey(NOTIFY_SENT_KEY));
     const all = raw ? JSON.parse(raw) : {};
     all[today] = NOTIFY_SENT_TODAY[today] || [];
-    localStorage.setItem(NOTIFY_SENT_KEY, JSON.stringify(all));
+    localStorage.setItem(scopedKey(NOTIFY_SENT_KEY), JSON.stringify(all));
   } catch {
     // ignore
   }

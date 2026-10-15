@@ -17,7 +17,33 @@
   <body>
     <div class="bg-pattern" aria-hidden="true"></div>
 
-    <div class="dashboard" id="dashboard">
+    <div id="profile-gate" class="profile-gate" role="main">
+      <div class="profile-gate__card card">
+        <div class="profile-gate__brand">
+          <span class="dash-header__logo" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2a3 3 0 0 1 3 3v2h2a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2V5a3 3 0 0 1 3-3Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
+              <path d="M9 14l2 2 4-4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <div>
+            <p class="eyebrow">PillCare</p>
+            <h1 class="profile-gate__title">사용자 프로필</h1>
+          </div>
+        </div>
+        <p class="profile-gate__desc">프로필마다 영양제·복용 시간·캘린더·알림이 따로 저장됩니다.</p>
+        <ul id="profile-list" class="profile-list" aria-label="프로필 목록"></ul>
+        <form id="profile-add-form" class="profile-add" autocomplete="off">
+          <label class="field">
+            <span class="field__label">새 프로필</span>
+            <input id="profile-name-input" class="field__control" type="text" maxlength="20" placeholder="예: 엄마, 아빠" required />
+          </label>
+          <button type="submit" class="btn btn-primary">프로필 추가</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="dashboard" id="dashboard" hidden>
       <header class="dash-header card">
         <div class="dash-header__brand">
           <span class="dash-header__logo" aria-hidden="true">
@@ -28,7 +54,7 @@
           </span>
           <div>
             <p class="eyebrow">PillCare Dashboard</p>
-            <h1>나의 복용 관리</h1>
+            <h1 id="dash-profile-title">복용 관리</h1>
           </div>
         </div>
 
@@ -40,6 +66,7 @@
 
         <p id="dash-header-sub" class="dash-header__sub">오늘 복용 · 월간 캘린더</p>
         <div class="dash-header__actions">
+          <button type="button" id="btn-switch-profile" class="btn btn-ghost btn-sm">프로필 변경</button>
           <p id="daily-date" class="dash-header__date"></p>
           <button type="button" id="theme-toggle" class="theme-toggle" aria-label="다크 모드로 전환">
             <span class="theme-toggle__icon" aria-hidden="true">
