@@ -33,7 +33,6 @@ let viewMonth = _initial.getMonth();
 const WEEKDAY_LABELS = ["일", "월", "화", "수", "목", "금", "토"];
 const WEEKDAY_NAMES = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
 
-const THEME_STORAGE_KEY = "vitaminTheme";
 const VITAMIN_STORAGE_KEY = "vitaminRegistry";
 const SLOT_LOG_KEY = "vitaminSlotLog";
 const NOTIFY_SETTINGS_KEY = "vitaminNotifySettings";
@@ -1075,39 +1074,6 @@ function setupVitaminForm() {
   });
 }
 
-function getPreferredTheme() {
-  try {
-    const saved = localStorage.getItem(THEME_STORAGE_KEY);
-    if (saved === "light" || saved === "dark") return saved;
-  } catch {
-    // ignore
-  }
-  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-}
-
-function applyTheme(theme) {
-  document.documentElement.dataset.theme = theme;
-  const metaTheme = document.querySelector('meta[name="theme-color"]');
-  if (metaTheme) metaTheme.setAttribute("content", theme === "dark" ? "#0b1220" : "#f0fdfa");
-  const btn = document.getElementById("theme-toggle");
-  if (btn) btn.setAttribute("aria-label", theme === "dark" ? "라이트 모드로 전환" : "다크 모드로 전환");
-}
-
-function setupThemeToggle() {
-  const btn = document.getElementById("theme-toggle");
-  if (!btn) return;
-  applyTheme(getPreferredTheme());
-  btn.addEventListener("click", () => {
-    const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-    applyTheme(next);
-    try {
-      localStorage.setItem(THEME_STORAGE_KEY, next);
-    } catch {
-      // ignore
-    }
-  });
-}
-
 /** @type {HTMLDivElement | null} */
 let TOAST_ROOT = null;
 let TOAST_HIDE_TIMER = null;
@@ -1549,7 +1515,7 @@ window.PillCare = {
 };
 
 try {
-  setupThemeToggle();
+  document.documentElement.removeAttribute("data-theme");
   bootstrapDashboardOnce();
   setupProfileGate();
   showProfileGate();

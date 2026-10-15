@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f0fdfa" />
-    <meta name="color-scheme" content="light dark" />
+    <meta name="color-scheme" content="light" />
     <title>나의 복용 관리</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -74,17 +74,6 @@
         <div class="dash-header__actions">
           <button type="button" id="btn-switch-profile" class="btn btn-ghost btn-sm">프로필 변경</button>
           <p id="daily-date" class="dash-header__date"></p>
-          <button type="button" id="theme-toggle" class="theme-toggle" aria-label="다크 모드로 전환">
-            <span class="theme-toggle__icon" aria-hidden="true">
-              <svg class="theme-ico theme-ico--sun" width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2v3M12 19v3M4.93 4.93l2.12 2.12M16.95 16.95l2.12 2.12M2 12h3M19 12h3M4.93 19.07l2.12-2.12M16.95 7.05l2.12-2.12" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
-                <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.75"/>
-              </svg>
-              <svg class="theme-ico theme-ico--moon" width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M21 13.2A8.2 8.2 0 0 1 10.8 3a7.2 7.2 0 1 0 10.2 10.2Z" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            </span>
-          </button>
         </div>
       </header>
 
@@ -123,9 +112,17 @@
               <div class="panel__head panel__head--row">
                 <h2 class="panel__title" id="month-label"></h2>
                 <div class="cal-nav">
-                  <button type="button" id="btn-prev" class="btn btn-circle btn-sm" aria-label="이전 달">‹</button>
+                  <button type="button" id="btn-prev" class="btn btn-circle btn-sm cal-nav__btn" aria-label="이전 달">
+                    <svg class="cal-nav__ico" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
                   <button type="button" id="btn-today" class="btn btn-ghost btn-sm">오늘</button>
-                  <button type="button" id="btn-next" class="btn btn-circle btn-sm" aria-label="다음 달">›</button>
+                  <button type="button" id="btn-next" class="btn btn-circle btn-sm cal-nav__btn" aria-label="다음 달">
+                    <svg class="cal-nav__ico" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
                 </div>
               </div>
               <div class="calendar-fill panel__body">
