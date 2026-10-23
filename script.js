@@ -1469,7 +1469,7 @@ function setupViewTabs() {
   const sub = document.getElementById("dash-header-sub");
   const SUBS = {
     home: "오늘 복용 · 월간 캘린더",
-    ai: "AI 복용 인증 완료 시에만 기록됩니다 · 배출 → 카메라 → 꿀꺽 감지",
+    ai: "AI 복용 인증 완료 시에만 기록됩니다 · 카메라 → 꿀꺽 감지 → Pi 회로",
     manage: "영양제 등록 · 복용 시간 설정 · 목록 관리",
   };
 

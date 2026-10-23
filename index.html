@@ -183,7 +183,7 @@
             <section class="panel card panel--ai panel--grow" aria-labelledby="dispense-title">
               <div class="panel__head">
                 <h2 id="dispense-title" class="panel__title">AI 복용 확인</h2>
-                <p class="panel__desc">배출 → 카메라 → 꿀꺽 감지 → 기록</p>
+                <p class="panel__desc">카메라 → 꿀꺽 감지 → 라즈베리파이 회로 → 기록</p>
               </div>
 
               <div class="ai-layout ai-layout--tab">
@@ -204,9 +204,9 @@
                       <button type="button" id="btn-dispense-test" class="btn btn-ghost btn-sm btn-block">🧪 AI 테스트 (기록 없음)</button>
                     </div>
                     <ol class="dispense__steps dispense__steps--compact">
-                      <li id="step-dispense" class="dispense-step">① 배출</li>
-                      <li id="step-camera" class="dispense-step">② 카메라</li>
-                      <li id="step-detect" class="dispense-step">③ AI</li>
+                      <li id="step-camera" class="dispense-step">① 카메라</li>
+                      <li id="step-detect" class="dispense-step">② AI</li>
+                      <li id="step-dispense" class="dispense-step">③ Pi 회로</li>
                       <li id="step-done" class="dispense-step">④ 저장</li>
                     </ol>
                   </div>

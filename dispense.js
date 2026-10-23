@@ -178,7 +178,7 @@
 
   async function runPiDispense() {
     piPhase = "dispensing";
-    piPhaseMessage = "알약 배출 중… 모터 작동";
+    piPhaseMessage = "복용 확인됨 · 라즈베리파이 회로 작동 중…";
     updateDispenseUI();
     drawPhaseScreen(piPhaseMessage);
 
@@ -194,14 +194,14 @@
     }
     piDispenseOk = true;
     piPhase = "done";
-    piPhaseMessage = "배출 완료 · 카메라 준비";
-    setPiStatus("라즈베리파이 배출 완료", "ok");
+    piPhaseMessage = "라즈베리파이 회로 작동 완료";
+    setPiStatus("라즈베리파이 회로 작동 완료", "ok");
     updateDispenseUI();
     drawPhaseScreen(piPhaseMessage);
     return data;
   }
 
-  /** 카메라 전 — health 확인 후 배출 POST 완료까지 대기 */
+  /** 복용 AI 확인 후 — health 확인 후 POST로 회로(모터) 작동 */
   async function triggerRaspberryPi() {
     isDispensing = true;
     piDispenseOk = false;
@@ -473,7 +473,7 @@
     startPredictLoop();
   }
 
-  function handleIntakeComplete() {
+  async function handleIntakeComplete() {
     if (isTestMode()) {
       updateDispenseUI();
       window.setTimeout(function () {
@@ -489,6 +489,15 @@
     }
 
     updateDispenseUI();
+
+    let piFailed = false;
+    try {
+      await triggerRaspberryPi();
+    } catch (e) {
+      piFailed = true;
+      console.error("라즈베리파이 회로 연동 실패:", e);
+    }
+
     if (onCompleteCallback && activeSlot) {
       onCompleteCallback({
         vitaminId: activeSlot.vitaminId,
@@ -496,6 +505,19 @@
         isTest: false,
       });
     }
+
+    const statusEl = document.getElementById("dispense-status");
+    if (statusEl) {
+      if (piFailed) {
+        statusEl.textContent =
+          "복용은 확인되었습니다. 라즈베리파이 회로 연동은 실패했습니다 — 기록은 저장되었습니다.";
+        statusEl.dataset.tone = "warn";
+      } else {
+        statusEl.textContent = "복용 완료! ✅ 기록 저장 · 라즈베리파이 회로 작동 완료";
+        statusEl.dataset.tone = "ok";
+      }
+    }
+    updateDispenseUI();
   }
 
   async function startSystem(slot) {
@@ -514,31 +536,17 @@
     piPhase = "idle";
     piDispenseOk = false;
 
-    console.log(isTestMode() ? "🧪 테스트 모드: 카메라 감시 시작 (기록 없음)" : "🚀 배출 → 카메라 → AI 감시");
+    console.log(isTestMode() ? "🧪 테스트 모드: 카메라 감시 시작 (기록 없음)" : "🚀 카메라 → AI 감시 → 복용 확인 시 Pi 회로");
     updateDispenseUI();
 
     try {
-      if (!isTestMode()) {
-        await triggerRaspberryPi();
-      }
-
       await startCamera();
     } catch (e) {
       console.error("시작 오류:", e);
       isSystemStarted = false;
-      piPhase = piPhase === "error" ? "error" : "idle";
-
-      if (!isTestMode() && piPhase === "error") {
-        alert(
-          "라즈베리파이와 연동하지 못했습니다.\n" +
-            (piPhaseMessage || "연결을 확인한 뒤 다시 시도해 주세요.") +
-            "\n\n카메라는 배출 성공 후에만 시작됩니다."
-        );
-        drawPhaseScreen("라즈베리파이 연동 실패\n" + (piPhaseMessage || "연결 확인 필요"));
-      } else {
-        alert("카메라를 켤 수 없습니다.\n브라우저에서 카메라 권한을 허용했는지 확인해 주세요.\n(로컬 서버 http://localhost 로 실행 필요)");
-        drawIdleScreen("카메라 오류\n권한 및 http://localhost 실행을 확인하세요.");
-      }
+      piPhase = "idle";
+      alert("카메라를 켤 수 없습니다.\n브라우저에서 카메라 권한을 허용했는지 확인해 주세요.\n(로컬 서버 http://localhost 로 실행 필요)");
+      drawIdleScreen("카메라 오류\n권한 및 http://localhost 실행을 확인하세요.");
       updateDispenseUI();
     }
   }
@@ -609,9 +617,12 @@
       } else if (isIntakeDetected() && isTestMode()) {
         statusEl.textContent = "테스트 성공! AI가 꿀꺽을 감지했습니다. (기록 없음 · 곧 다시 감시)";
         statusEl.dataset.tone = "ok";
-      } else if (isIntakeDetected()) {
-        statusEl.textContent = "복용 완료! ✅ 오늘 기록에 저장되었습니다.";
+      } else if (isIntakeDetected() && intakeHandled && piDispenseOk) {
+        statusEl.textContent = "복용 완료! ✅ 기록 저장 · 라즈베리파이 회로 작동 완료";
         statusEl.dataset.tone = "ok";
+      } else if (isIntakeDetected() && intakeHandled) {
+        statusEl.textContent = "복용 확인됨 · 기록 저장됨 (Pi 연동 확인 중…)";
+        statusEl.dataset.tone = "warn";
       } else if (isSystemStarted && isTestMode()) {
         statusEl.textContent = "테스트 모드 — 카메라로 AI 동작을 확인합니다. (기록 없음)";
         statusEl.dataset.tone = "info";
@@ -650,8 +661,8 @@
         !modelReady || !hasSlot || isDispensing || (isSystemStarted && !done && !isTestMode());
       startBtn.textContent = isDispensing
         ? piPhase === "connecting"
-          ? "장비 연결 중…"
-          : "알약 배출 중…"
+          ? "Pi 연결 중…"
+          : "Pi 회로 작동 중…"
         : done
         ? "다시 시작"
         : isSystemStarted
@@ -662,7 +673,7 @@
             ? "AI 모델 로딩 중…"
             : willTest
               ? "테스트 시작"
-              : "알약 배출 & 복용 감시 시작";
+              : "복용 감시 시작";
     }
     if (stopBtn) stopBtn.hidden = !isSystemStarted;
     if (slotSelect) slotSelect.disabled = isSystemStarted;
@@ -676,24 +687,32 @@
   function updateSteps() {
     const detected = isIntakeDetected();
     const isTest = isTestMode();
-    const dispenseBusy = isDispensing || piPhase === "connecting" || piPhase === "dispensing";
-    const dispenseDone = piDispenseOk || (isSystemStarted && !isTest && !!videoEl);
+    const piBusy = isDispensing || piPhase === "connecting" || piPhase === "dispensing";
     const map = {
-      dispense: !isTest && (dispenseBusy || dispenseDone),
       camera: isSystemStarted && !!videoEl,
-      detect: detected,
-      done: detected && !isTest,
+      detect: detected || (isSystemStarted && !!videoEl && !intakeHandled),
+      dispense: !isTest && (piBusy || piDispenseOk),
+      done: intakeHandled && !isTest,
     };
     Object.keys(map).forEach(function (key) {
       const el = document.getElementById("step-" + key);
       if (el) {
         const active =
           key === "dispense"
-            ? dispenseBusy
+            ? piBusy
             : key === "camera"
-              ? isSystemStarted && !!videoEl && !dispenseBusy
-              : !!map[key] && !(key === "done" && isTest);
-        const done = key === "dispense" ? dispenseDone && !dispenseBusy : !!map[key];
+              ? isSystemStarted && !!videoEl && !intakeHandled
+              : key === "detect"
+                ? isSystemStarted && !!videoEl && !intakeHandled && !piBusy
+                : !!map[key] && !(key === "done" && isTest);
+        const done =
+          key === "dispense"
+            ? piDispenseOk && !piBusy
+            : key === "camera"
+              ? !!videoEl && (intakeHandled || detected)
+              : key === "detect"
+                ? intakeHandled || detected
+                : !!map[key];
         el.classList.toggle("dispense-step--active", active);
         el.classList.toggle("dispense-step--done", done);
       }
