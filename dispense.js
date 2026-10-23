@@ -239,26 +239,19 @@
     if (isDispensing) return;
 
     savePiUrlFromInput();
-    const testBtn = document.getElementById("btn-pi-circuit-test");
-    const testBtnHome = document.getElementById("btn-arduino-test-home");
-    const homeStatus = document.getElementById("arduino-test-home-status");
+    const testBtn = document.getElementById("btn-arduino-direct");
     if (testBtn) testBtn.disabled = true;
-    if (testBtnHome) testBtnHome.disabled = true;
     setPiStatus("아두이노 작동 신호 전송 중…", "");
-    if (homeStatus) homeStatus.textContent = "아두이노 작동 신호 전송 중…";
 
     try {
       await triggerRaspberryPi();
       setPiStatus("아두이노 작동 테스트 성공 · Pi에 신호를 보냈습니다.", "ok");
-      if (homeStatus) homeStatus.textContent = "성공: Pi/아두이노에 작동 신호를 보냈습니다.";
-      drawIdleScreen("아두이노 테스트 완료\n작동 신호 전송됨");
+      drawIdleScreen("아두이노 작동\n신호 전송 완료");
     } catch (e) {
       const errMsg = piPhaseMessage || (e && e.message) || "알 수 없음";
-      setPiStatus("아두이노 작동 테스트 실패: " + errMsg, "err");
-      if (homeStatus) homeStatus.textContent = "실패: " + errMsg + " (Flask 실행·주소 확인)";
+      setPiStatus("아두이노 작동 실패: " + errMsg, "err");
     } finally {
       if (testBtn) testBtn.disabled = false;
-      if (testBtnHome) testBtnHome.disabled = false;
       piPhase = "idle";
       piPhaseMessage = "";
       piDispenseOk = false;
@@ -719,11 +712,9 @@
     const piInput = document.getElementById("dispense-pi-url");
     if (piInput) piInput.disabled = isSystemStarted || isDispensing;
 
-    const piTestBtn = document.getElementById("btn-pi-circuit-test");
-    const piTestHomeBtn = document.getElementById("btn-arduino-test-home");
+    const arduinoBtn = document.getElementById("btn-arduino-direct");
     const piTestDisabled = isSystemStarted || isDispensing;
-    if (piTestBtn) piTestBtn.disabled = piTestDisabled;
-    if (piTestHomeBtn) piTestHomeBtn.disabled = piTestDisabled;
+    if (arduinoBtn) arduinoBtn.disabled = piTestDisabled;
 
     updateSteps();
   }
@@ -814,8 +805,7 @@
         testPiCircuitOnly();
       });
     }
-    bindPiCircuitTestButton(document.getElementById("btn-pi-circuit-test"));
-    bindPiCircuitTestButton(document.getElementById("btn-arduino-test-home"));
+    bindPiCircuitTestButton(document.getElementById("btn-arduino-direct"));
 
     const testBtn = document.getElementById("btn-dispense-test");
     if (testBtn) {

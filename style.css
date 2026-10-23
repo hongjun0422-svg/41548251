@@ -239,30 +239,26 @@ body.app-screen--dashboard #dashboard {
 .dispense__status[data-tone="err"] { color: #fda4af; }
 .dispense__status[data-tone="warn"] { color: #fde047; }
 .dispense__labels, .dispense__confidence { margin: 2px 0 0; font-size: .68rem; font-weight: 600; color: #94a3b8; }
-.pi-hardware-test {
+.btn-arduino-direct {
+  min-height: 42px;
   margin-top: 4px;
-  padding: 10px 10px 8px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-strong);
-  background: var(--accent-soft);
-}
-.pi-hardware-test__title {
-  margin: 0 0 4px;
-  font-size: 0.78rem;
+  font-size: 0.88rem;
   font-weight: 800;
-  color: var(--accent);
+  color: #7c2d12;
+  background: linear-gradient(180deg, #fed7aa 0%, #fdba74 100%);
+  border: 2px solid #ea580c;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.25);
 }
-.pi-hardware-test__desc {
-  margin: 0 0 8px;
-  font-size: 0.68rem;
-  font-weight: 600;
-  color: var(--muted);
-  line-height: 1.35;
+.btn-arduino-direct:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ffedd5 0%, #fb923c 100%);
 }
-.pi-test-btn { min-height: 38px; font-size: 0.82rem; }
-.pi-test-btn__hint {
-  margin: 6px 0 0;
-  grid-column: 1 / -1;
+.btn-arduino-direct:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.btn-arduino-direct__hint {
+  margin: 0;
   font-size: 0.65rem;
   font-weight: 600;
   color: var(--muted);
