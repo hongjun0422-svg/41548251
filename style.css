@@ -265,6 +265,23 @@ body.app-screen--dashboard #dashboard {
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(234, 88, 12, 0.25);
 }
+.arduino-fab {
+  position: fixed;
+  z-index: 200;
+  right: 18px;
+  bottom: 18px;
+  min-width: 160px;
+  padding: 12px 18px;
+  font-size: 1rem;
+  box-shadow: 0 8px 28px rgba(234, 88, 12, 0.45);
+  cursor: pointer;
+}
+body.app-screen--gate .arduino-fab {
+  display: none;
+}
+body.app-screen--dashboard .arduino-fab {
+  display: block;
+}
 .btn-arduino-direct:hover:not(:disabled) {
   background: linear-gradient(180deg, #ffedd5 0%, #fb923c 100%);
 }

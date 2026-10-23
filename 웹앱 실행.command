@@ -3,6 +3,12 @@
 # 카메라 사용을 위해 file:// 이 아닌 http:// 로 접속합니다.
 
 cd "$(dirname "$0")"
+echo "실행 폴더: $(pwd)"
+if grep -q 'id="btn-arduino-direct"' index.html 2>/dev/null; then
+  echo "index.html: 아두이노 버튼 포함됨"
+else
+  echo "경고: index.html에 아두이노 버튼이 없습니다. 시연 폴더가 맞는지 확인하세요."
+fi
 PORT=8080
 
 # 포트가 사용 중이면 8081, 8082 … 로 시도
