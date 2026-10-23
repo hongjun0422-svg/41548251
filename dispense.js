@@ -850,4 +850,6 @@
     reloadPiUrlField: initPiUrlField,
     testPiCircuit: testPiCircuitOnly,
   };
+
+  window.runArduinoDirectTest = testPiCircuitOnly;
 })();

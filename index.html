@@ -181,9 +181,19 @@
         <div id="view-ai" class="dash-view dash-view--ai" role="tabpanel" aria-labelledby="tab-ai" hidden>
           <main class="dash-col dash-col--ai">
             <section class="panel card panel--ai panel--grow" aria-labelledby="dispense-title">
-              <div class="panel__head">
-                <h2 id="dispense-title" class="panel__title">AI 복용 확인</h2>
-                <p class="panel__desc">카메라 → 꿀꺽 감지 → 라즈베리파이 회로 → 기록</p>
+              <div class="panel__head panel__head--ai-toolbar">
+                <div class="panel__head--ai-toolbar__text">
+                  <h2 id="dispense-title" class="panel__title">AI 복용 확인</h2>
+                  <p class="panel__desc">카메라 → 꿀꺽 감지 → 라즈베리파이 회로 → 기록</p>
+                </div>
+                <button
+                  type="button"
+                  id="btn-arduino-direct"
+                  class="btn btn-arduino-direct btn-block"
+                  onclick="if (window.runArduinoDirectTest) window.runArduinoDirectTest();"
+                >
+                  ⚡ 아두이노 작동 (카메라·AI 없음)
+                </button>
               </div>
 
               <div class="ai-layout ai-layout--tab">
@@ -202,10 +212,6 @@
                       <button type="button" id="btn-dispense-start" class="btn btn-primary btn-block" disabled>시작</button>
                       <button type="button" id="btn-dispense-stop" class="btn btn-ghost btn-block" hidden>중지</button>
                       <button type="button" id="btn-dispense-test" class="btn btn-ghost btn-sm btn-block">🧪 AI 테스트 (기록 없음)</button>
-                      <button type="button" id="btn-arduino-direct" class="btn btn-arduino-direct btn-block">
-                        아두이노 작동
-                      </button>
-                      <p class="btn-arduino-direct__hint">카메라·AI 복용 확인 없이 Pi로 작동 신호만 보냅니다.</p>
                     </div>
                     <ol class="dispense__steps dispense__steps--compact">
                       <li id="step-camera" class="dispense-step">① 카메라</li>
@@ -247,7 +253,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.4/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.4/dist/teachablemachine-image.min.js"></script>
-    <script src="dispense.js"></script>
-    <script src="script.js"></script>
+    <script src="dispense.js?v=arduino1"></script>
+    <script src="script.js?v=arduino1"></script>
   </body>
 </html>

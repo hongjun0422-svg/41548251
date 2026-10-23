@@ -138,6 +138,22 @@ body.app-screen--dashboard #dashboard {
 .panel--ai { min-height: 0; }
 .panel--ai.panel--grow { flex: 1; }
 .panel--ai .panel__head { padding-bottom: 4px; flex-shrink: 0; }
+.panel__head--ai-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2px;
+}
+.panel__head--ai-toolbar .btn-arduino-direct {
+  width: 100%;
+  max-width: none;
+}
+.ai-layout__controls {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
 .panel--ai .panel__body { overflow-y: auto; }
 .panel--ai .ai-layout { flex: 1; min-height: 0; }
 
@@ -240,9 +256,8 @@ body.app-screen--dashboard #dashboard {
 .dispense__status[data-tone="warn"] { color: #fde047; }
 .dispense__labels, .dispense__confidence { margin: 2px 0 0; font-size: .68rem; font-weight: 600; color: #94a3b8; }
 .btn-arduino-direct {
-  min-height: 42px;
-  margin-top: 4px;
-  font-size: 0.88rem;
+  min-height: 48px;
+  font-size: 0.92rem;
   font-weight: 800;
   color: #7c2d12;
   background: linear-gradient(180deg, #fed7aa 0%, #fdba74 100%);
