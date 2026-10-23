@@ -12,7 +12,8 @@
   const CONFIDENCE_THRESHOLD = 0.9;
   const PREDICT_INTERVAL_MS = 200;
   const PI_URL_STORAGE_KEY = "dispensePiUrl";
-  const DEFAULT_PI_URL = "https://91eefcc5394e14.lhr.life";
+  /** Pi에서 웹+Flask 같이 쓸 때 기본값 (server.py port 5000) */
+  const DEFAULT_PI_URL = "http://127.0.0.1:5000";
   const PI_FETCH_TIMEOUT_MS = 12000;
   const TEST_SLOT_VALUE = "__test__|test";
 
@@ -141,7 +142,7 @@
       if (piInput.value.trim()) onPiUrlEdited();
     });
 
-    setPiStatus("터널 주소 변경 시 자동 저장됩니다.", "");
+    setPiStatus("기본: Pi 단독 http://127.0.0.1:5000 · 다른 PC에서 쓰면 Pi Wi‑Fi IP 입력", "");
   }
 
   function fetchPi(options) {

@@ -9,10 +9,9 @@ GPIO로 스텝 모터 또는 DC 모터를 제어합니다.
 실행:
   python server.py
 
-터널 (외부 접속):
-  ssh -R 80:localhost:5000 nokey@localhost.run
-  → 발급된 URL을 웹앱에 사용 (예: https://91eefcc5394e14.lhr.life)
-  GET = 상태 확인 · POST = 알약 배출
+Pi 단독 (권장): 웹앱 「라즈베리파이 주소」에 http://127.0.0.1:5000
+  다른 기기에서 접속: http://<Pi의 Wi‑Fi IP>:5000
+  GET / = 상태 확인 · POST / = 복용 AI 확인 후 회로(모터) 작동
 """
 
 from flask import Flask, jsonify, request
