@@ -138,6 +138,7 @@ body.app-screen--dashboard #dashboard {
 .panel--ai { min-height: 0; }
 .panel--ai.panel--grow { flex: 1; }
 .panel--ai .panel__head { padding-bottom: 4px; flex-shrink: 0; }
+.panel--ai .panel__body { overflow-y: auto; }
 .panel--ai .ai-layout { flex: 1; min-height: 0; }
 
 .ai-layout__controls-main {
@@ -238,7 +239,36 @@ body.app-screen--dashboard #dashboard {
 .dispense__status[data-tone="err"] { color: #fda4af; }
 .dispense__status[data-tone="warn"] { color: #fde047; }
 .dispense__labels, .dispense__confidence { margin: 2px 0 0; font-size: .68rem; font-weight: 600; color: #94a3b8; }
-#btn-pi-circuit-test { margin-top: 2px; }
+.pi-hardware-test {
+  margin-top: 4px;
+  padding: 10px 10px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--accent-soft);
+}
+.pi-hardware-test__title {
+  margin: 0 0 4px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+.pi-hardware-test__desc {
+  margin: 0 0 8px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--muted);
+  line-height: 1.35;
+}
+.pi-test-btn { min-height: 38px; font-size: 0.82rem; }
+.pi-test-btn__hint {
+  margin: 6px 0 0;
+  grid-column: 1 / -1;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--muted);
+  line-height: 1.35;
+  text-align: center;
+}
 .dispense__actions { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
 .ai-layout__controls .field__control[type="url"] { font-size: .72rem; }
 .dispense__steps--compact { margin: 4px 0 0; padding: 0; list-style: none; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }

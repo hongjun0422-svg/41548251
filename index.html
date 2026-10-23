@@ -103,6 +103,10 @@
                 </label>
                 <button type="button" id="btn-notify-permission" class="btn btn-ghost btn-sm">권한</button>
                 <p id="notify-status" class="form-msg form-msg--tiny" aria-live="polite"></p>
+                <button type="button" id="btn-arduino-test-home" class="btn btn-primary btn-sm btn-block pi-test-btn">
+                  아두이노 작동 테스트
+                </button>
+                <p id="arduino-test-home-status" class="pi-test-btn__hint" aria-live="polite">카메라·AI 없이 Pi로 작동 신호만 보냅니다.</p>
               </div>
             </section>
           </aside>
@@ -197,10 +201,14 @@
                       <span class="field__label">라즈베리파이 주소</span>
                       <input id="dispense-pi-url" class="field__control" type="url" placeholder="http://127.0.0.1:5000" />
                     </label>
+                    <section class="pi-hardware-test" aria-labelledby="pi-hardware-test-title">
+                      <h3 id="pi-hardware-test-title" class="pi-hardware-test__title">아두이노 / 회로 테스트</h3>
+                      <p class="pi-hardware-test__desc">복용 AI·카메라 없이 버튼만 눌러 작동 신호를 보냅니다.</p>
+                      <button type="button" id="btn-pi-circuit-test" class="btn btn-primary btn-block pi-test-btn">
+                        아두이노 작동 테스트
+                      </button>
+                    </section>
                     <p id="dispense-pi-status" class="form-msg form-msg--tiny" aria-live="polite"></p>
-                    <button type="button" id="btn-pi-circuit-test" class="btn btn-ghost btn-sm btn-block">
-                      회로 연결 테스트 (AI·카메라 없음)
-                    </button>
                     <div class="dispense__actions">
                       <button type="button" id="btn-dispense-start" class="btn btn-primary btn-block" disabled>시작</button>
                       <button type="button" id="btn-dispense-stop" class="btn btn-ghost btn-block" hidden>중지</button>
