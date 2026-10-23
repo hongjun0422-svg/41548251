@@ -230,6 +230,38 @@
     drawIdleScreen(message);
   }
 
+  /** 복용 AI와 무관 — Pi/아두이노 회로만 GET·POST로 확인 */
+  async function testPiCircuitOnly() {
+    if (isSystemStarted) {
+      setPiStatus("복용 감시 중에는 테스트할 수 없습니다. 먼저 중지해 주세요.", "err");
+      return;
+    }
+    if (isDispensing) return;
+
+    savePiUrlFromInput();
+    const testBtn = document.getElementById("btn-pi-circuit-test");
+    if (testBtn) testBtn.disabled = true;
+    setPiStatus("연결 테스트 중… (GET → POST)", "");
+
+    try {
+      await triggerRaspberryPi();
+      setPiStatus("연결 테스트 성공 · 회로(모터) 작동 명령을 보냈습니다.", "ok");
+      drawIdleScreen("회로 테스트 완료\nPi/아두이노 작동 신호 전송됨");
+    } catch (e) {
+      setPiStatus(
+        "연결 테스트 실패: " + (piPhaseMessage || (e && e.message) || "알 수 없음"),
+        "err"
+      );
+    } finally {
+      if (testBtn) testBtn.disabled = false;
+      piPhase = "idle";
+      piPhaseMessage = "";
+      piDispenseOk = false;
+      isDispensing = false;
+      updateDispenseUI();
+    }
+  }
+
   function savePiUrl(url) {
     try {
       localStorage.setItem(piUrlStorageKey(), url);
@@ -682,6 +714,9 @@
     const piInput = document.getElementById("dispense-pi-url");
     if (piInput) piInput.disabled = isSystemStarted || isDispensing;
 
+    const piTestBtn = document.getElementById("btn-pi-circuit-test");
+    if (piTestBtn) piTestBtn.disabled = isSystemStarted || isDispensing;
+
     updateSteps();
   }
 
@@ -764,6 +799,13 @@
       slotInputEl.addEventListener("change", updateDispenseUI);
     }
 
+    const piCircuitTestBtn = document.getElementById("btn-pi-circuit-test");
+    if (piCircuitTestBtn) {
+      piCircuitTestBtn.addEventListener("click", function () {
+        testPiCircuitOnly();
+      });
+    }
+
     const testBtn = document.getElementById("btn-dispense-test");
     if (testBtn) {
       testBtn.addEventListener("click", function () {
@@ -805,5 +847,6 @@
       savePiUrl(normalized);
     },
     reloadPiUrlField: initPiUrlField,
+    testPiCircuit: testPiCircuitOnly,
   };
 })();
